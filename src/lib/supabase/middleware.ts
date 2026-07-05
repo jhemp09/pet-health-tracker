@@ -1,7 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/signup", "/auth"];
+// /api routes authenticate themselves (e.g. the cron route checks a bearer
+// secret) rather than relying on this page-oriented session redirect, since
+// callers like Vercel Cron have no browser session to redirect.
+const PUBLIC_PATHS = ["/login", "/signup", "/auth", "/api"];
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
