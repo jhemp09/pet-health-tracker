@@ -13,11 +13,12 @@ export function PetSwitcher({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  if (pets.length < 2) return null;
+  const otherPets = pets.filter((pet) => pet.id !== petId);
+  if (otherPets.length === 0) return null;
 
   function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const newPetId = e.target.value;
-    if (newPetId === petId) return;
+    if (!newPetId) return;
     const rest = pathname?.slice(`/pets/${petId}`.length) ?? "";
     const query = searchParams?.toString();
     router.push(`/pets/${newPetId}${rest}${query ? `?${query}` : ""}`);
@@ -25,12 +26,15 @@ export function PetSwitcher({
 
   return (
     <select
-      value={petId}
+      value=""
       onChange={handleChange}
       className="rounded border border-gray-300 bg-white px-2 py-1 text-sm"
       aria-label="Switch pet"
     >
-      {pets.map((pet) => (
+      <option value="" disabled>
+        Switch pet
+      </option>
+      {otherPets.map((pet) => (
         <option key={pet.id} value={pet.id}>
           {pet.name}
         </option>
