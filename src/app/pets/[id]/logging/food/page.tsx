@@ -13,11 +13,11 @@ export default async function FeedingPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ date?: string }>;
+  searchParams: Promise<{ date?: string; meal?: string }>;
 }) {
   const user = await requireUser();
   const { id: petId } = await params;
-  const { date } = await searchParams;
+  const { date, meal: highlightMealId } = await searchParams;
   const supabase = await createClient();
 
   const { data: pet } = await supabase
@@ -70,11 +70,40 @@ export default async function FeedingPage({
           .order("created_at", { ascending: true })
       : { data: [] };
 
-  const foodsByScheduleId = new Map<string, typeof mealFoods>();
+  type MealFood = {
+    id: string;
+    schedule_id: string;
+    url: string;
+    title: string | null;
+    image_url: string | null;
+    amount: string | null;
+  };
+  const foodsByScheduleId = new Map<string, MealFood[]>();
   for (const food of mealFoods ?? []) {
     const list = foodsByScheduleId.get(food.schedule_id) ?? [];
     list.push(food);
     foodsByScheduleId.set(food.schedule_id, list);
+  }
+
+  const { data: linkedMedications } = await supabase
+    .from("medications")
+    .select("id, linked_schedule_id")
+    .eq("pet_id", petId)
+    .not("linked_schedule_id", "is", null);
+  const linkedMedicationByScheduleId = new Map<string, string>();
+  for (const med of linkedMedications ?? []) {
+    if (med.linked_schedule_id && !linkedMedicationByScheduleId.has(med.linked_schedule_id)) {
+      linkedMedicationByScheduleId.set(med.linked_schedule_id, med.id);
+    }
+  }
+
+  const orderedSchedules = [...(schedules ?? [])];
+  if (highlightMealId) {
+    orderedSchedules.sort((a, b) => {
+      const aMatch = a.id === highlightMealId ? 0 : 1;
+      const bMatch = b.id === highlightMealId ? 0 : 1;
+      return aMatch - bMatch;
+    });
   }
 
   const todaysLogs = (logsInRange ?? []).filter(
@@ -107,9 +136,9 @@ export default async function FeedingPage({
         />
       </div>
 
-      {schedules && schedules.length > 0 ? (
+      {orderedSchedules.length > 0 ? (
         <div className="flex flex-col gap-2">
-          {schedules.map((s) => (
+          {orderedSchedules.map((s) => (
             <MealRow
               key={`${s.id}-${selectedDate}`}
               petId={petId}
@@ -119,6 +148,11 @@ export default async function FeedingPage({
               timeLabel={formatTimeLabel(s.scheduled_time)}
               log={logByScheduleId.get(s.id) ?? null}
               foods={foodsByScheduleId.get(s.id) ?? []}
+              linkedMedicationHref={
+                linkedMedicationByScheduleId.has(s.id)
+                  ? `/pets/${petId}/logging/medications?med=${linkedMedicationByScheduleId.get(s.id)}`
+                  : null
+              }
             />
           ))}
         </div>
@@ -142,7 +176,11 @@ export default async function FeedingPage({
         <ExtraFeedingForm petId={petId} dateStr={selectedDate} />
       </div>
 
-      <ScheduleEditor petId={petId} schedules={schedules ?? []} />
+      <ScheduleEditor
+        petId={petId}
+        schedules={schedules ?? []}
+        foodsBySchedule={foodsByScheduleId}
+      />
 
       <ReminderToggle
         petId={petId}

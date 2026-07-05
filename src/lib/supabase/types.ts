@@ -168,6 +168,7 @@ export interface Database {
           end_date: string | null;
           notes: string | null;
           product_url: string | null;
+          linked_schedule_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -180,6 +181,7 @@ export interface Database {
           end_date?: string | null;
           notes?: string | null;
           product_url?: string | null;
+          linked_schedule_id?: string | null;
         };
         Update: {
           name?: string;
@@ -190,6 +192,7 @@ export interface Database {
           end_date?: string | null;
           notes?: string | null;
           product_url?: string | null;
+          linked_schedule_id?: string | null;
         };
         Relationships: [];
       };

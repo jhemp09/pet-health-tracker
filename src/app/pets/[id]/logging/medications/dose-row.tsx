@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useDebouncedCallback } from "@/lib/use-debounced-callback";
 import { deleteMedicationLog, saveMedicationForDate } from "./actions";
@@ -21,6 +22,7 @@ export function DoseRow({
   timeLabel,
   log,
   details,
+  linkedMealHref,
 }: {
   petId: string;
   dateStr: string;
@@ -30,6 +32,7 @@ export function DoseRow({
   timeLabel?: string;
   log: LogInfo | null;
   details?: Details | null;
+  linkedMealHref?: string | null;
 }) {
   const [given, setGiven] = useState<boolean | null>(log?.given ?? null);
   const [notes, setNotes] = useState(log?.notes ?? "");
@@ -87,7 +90,17 @@ export function DoseRow({
   );
 
   return (
-    <div className="flex flex-col gap-2 rounded border border-gray-200 p-3">
+    <div className="relative flex flex-col gap-2 rounded border border-gray-200 p-3">
+      {linkedMealHref && (
+        <Link
+          href={linkedMealHref}
+          title="Linked meal"
+          aria-label="Go to linked meal"
+          className="absolute -left-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-xs shadow"
+        >
+          🍽️
+        </Link>
+      )}
       <div className="flex flex-wrap items-end gap-2">
         <div className="mr-auto min-w-[7rem]">
           <p className="text-sm font-medium">{label}</p>
@@ -144,13 +157,7 @@ export function DoseRow({
         )}
       </div>
 
-      {details !== undefined && details !== null && (
-        <MedicationDetails
-          petId={petId}
-          medicationId={medicationId}
-          details={details}
-        />
-      )}
+      {details && <MedicationDetails details={details} />}
     </div>
   );
 }

@@ -24,6 +24,10 @@ async function getPetTimezone(
 export async function addMedication(petId: string, formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const dosage = String(formData.get("dosage") ?? "").trim() || null;
+  const notes = String(formData.get("notes") ?? "").trim() || null;
+  const productUrl = String(formData.get("product_url") ?? "").trim() || null;
+  const linkedScheduleId =
+    String(formData.get("linked_schedule_id") ?? "").trim() || null;
   const scheduledTime = String(formData.get("scheduled_time") ?? "");
   const intervalDays = Math.max(1, Number(formData.get("interval_days")) || 1);
   let startDate = String(formData.get("start_date") ?? "").trim();
@@ -41,6 +45,9 @@ export async function addMedication(petId: string, formData: FormData) {
       pet_id: petId,
       name,
       dosage,
+      notes,
+      product_url: productUrl,
+      linked_schedule_id: linkedScheduleId,
       interval_days: intervalDays,
       start_date: startDate,
     })
@@ -67,6 +74,10 @@ export async function updateMedication(
 ) {
   const name = String(formData.get("name") ?? "").trim();
   const dosage = String(formData.get("dosage") ?? "").trim() || null;
+  const notes = String(formData.get("notes") ?? "").trim() || null;
+  const productUrl = String(formData.get("product_url") ?? "").trim() || null;
+  const linkedScheduleId =
+    String(formData.get("linked_schedule_id") ?? "").trim() || null;
   const intervalDays = Math.max(1, Number(formData.get("interval_days")) || 1);
   const startDate = String(formData.get("start_date") ?? "").trim() || null;
   if (!name) return;
@@ -77,6 +88,9 @@ export async function updateMedication(
     .update({
       name,
       dosage,
+      notes,
+      product_url: productUrl,
+      linked_schedule_id: linkedScheduleId,
       interval_days: intervalDays,
       start_date: startDate,
     })

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useDebouncedCallback } from "@/lib/use-debounced-callback";
 import { deleteFeedingLog, saveFeedingForDate } from "./actions";
@@ -22,6 +23,7 @@ export function MealRow({
   timeLabel,
   log,
   foods = [],
+  linkedMedicationHref,
 }: {
   petId: string;
   dateStr: string;
@@ -30,6 +32,7 @@ export function MealRow({
   timeLabel?: string;
   log: LogInfo | null;
   foods?: Food[];
+  linkedMedicationHref?: string | null;
 }) {
   const [percent, setPercent] = useState(log?.percent_eaten?.toString() ?? "");
   const [notes, setNotes] = useState(log?.notes ?? "");
@@ -60,7 +63,17 @@ export function MealRow({
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded border border-gray-200 p-3">
+    <div className="relative flex flex-col gap-2 rounded border border-gray-200 p-3">
+      {linkedMedicationHref && (
+        <Link
+          href={linkedMedicationHref}
+          title="Linked medication"
+          aria-label="Go to linked medication"
+          className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-xs shadow"
+        >
+          💊
+        </Link>
+      )}
       <div className="flex flex-wrap items-end gap-2">
         <div className="mr-auto min-w-[7rem]">
           <p className="text-sm font-medium">{label}</p>
@@ -112,7 +125,7 @@ export function MealRow({
       </div>
 
       {scheduleId && (
-        <MealFoodsList petId={petId} scheduleId={scheduleId} foods={foods} />
+        <MealFoodsList petId={petId} scheduleId={scheduleId} foods={foods} readOnly />
       )}
     </div>
   );

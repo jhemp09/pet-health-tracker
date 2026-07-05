@@ -13,11 +13,11 @@ export default async function MedicationsPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ date?: string }>;
+  searchParams: Promise<{ date?: string; med?: string }>;
 }) {
   const user = await requireUser();
   const { id: petId } = await params;
-  const { date } = await searchParams;
+  const { date, med: highlightMedId } = await searchParams;
   const supabase = await createClient();
 
   const { data: pet } = await supabase
@@ -33,20 +33,29 @@ export default async function MedicationsPage({
   const selectedDate =
     date && DATE_RE.test(date) && date <= todayDate ? date : todayDate;
 
-  const [{ data: medications }, { data: preference }] = await Promise.all([
-    supabase
-      .from("medications")
-      .select("id, name, dosage, interval_days, start_date, notes, product_url")
-      .eq("pet_id", petId)
-      .eq("active", true)
-      .order("created_at", { ascending: true }),
-    supabase
-      .from("notification_preferences")
-      .select("medication_enabled")
-      .eq("pet_id", petId)
-      .eq("user_id", user.id)
-      .maybeSingle(),
-  ]);
+  const [{ data: medications }, { data: preference }, { data: feedingSchedules }] =
+    await Promise.all([
+      supabase
+        .from("medications")
+        .select(
+          "id, name, dosage, interval_days, start_date, notes, product_url, linked_schedule_id"
+        )
+        .eq("pet_id", petId)
+        .eq("active", true)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("notification_preferences")
+        .select("medication_enabled")
+        .eq("pet_id", petId)
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("feeding_schedules")
+        .select("id, label")
+        .eq("pet_id", petId)
+        .eq("active", true)
+        .order("scheduled_time", { ascending: true }),
+    ]);
 
   const medicationIds = (medications ?? []).map((m) => m.id);
 
@@ -84,6 +93,13 @@ export default async function MedicationsPage({
     if (!medication) return false;
     return isDueOnInterval(medication.start_date, selectedDate, medication.interval_days);
   });
+  if (highlightMedId) {
+    dueScheduleTimes.sort((a, b) => {
+      const aMatch = a.medication_id === highlightMedId ? 0 : 1;
+      const bMatch = b.medication_id === highlightMedId ? 0 : 1;
+      return aMatch - bMatch;
+    });
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -131,6 +147,11 @@ export default async function MedicationsPage({
                         }
                       : null
                   }
+                  linkedMealHref={
+                    isFirstForMedication && medication.linked_schedule_id
+                      ? `/pets/${petId}/logging/food?meal=${medication.linked_schedule_id}`
+                      : null
+                  }
                 />
               );
             });
@@ -173,6 +194,7 @@ export default async function MedicationsPage({
           ...m,
           times: (scheduleTimes ?? []).filter((t) => t.medication_id === m.id),
         }))}
+        feedingSchedules={feedingSchedules ?? []}
       />
 
       <ReminderToggle

@@ -14,9 +14,11 @@ type Food = {
 function FoodChip({
   petId,
   food,
+  readOnly,
 }: {
   petId: string;
   food: Food;
+  readOnly?: boolean;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +78,7 @@ function FoodChip({
           <button
             type="submit"
             disabled={isPending}
-            className="flex-1 rounded bg-black px-2 py-1 text-white disabled:opacity-50"
+            className="btn-primary flex-1 px-2 py-1"
           >
             {isPending ? "Saving…" : "Save"}
           </button>
@@ -86,7 +88,7 @@ function FoodChip({
               setIsEditing(false);
               setError(null);
             }}
-            className="flex-1 rounded border border-gray-300 px-2 py-1"
+            className="btn-outline flex-1 px-2 py-1"
           >
             Cancel
           </button>
@@ -119,21 +121,25 @@ function FoodChip({
           {food.amount ? `${food.amount} of ${food.title ?? food.url}` : (food.title ?? food.url)}
         </span>
       </a>
-      <button
-        type="button"
-        onClick={() => setIsEditing(true)}
-        className="text-gray-400 hover:text-gray-700"
-      >
-        edit
-      </button>
-      <button
-        type="button"
-        disabled={isPending}
-        onClick={handleRemove}
-        className="text-gray-400 hover:text-red-600"
-      >
-        ×
-      </button>
+      {!readOnly && (
+        <>
+          <button
+            type="button"
+            onClick={() => setIsEditing(true)}
+            className="text-gray-400 hover:text-gray-700"
+          >
+            edit
+          </button>
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={handleRemove}
+            className="text-gray-400 hover:text-red-600"
+          >
+            ×
+          </button>
+        </>
+      )}
     </span>
   );
 }
@@ -142,10 +148,12 @@ export function MealFoodsList({
   petId,
   scheduleId,
   foods,
+  readOnly,
 }: {
   petId: string;
   scheduleId: string;
   foods: Food[];
+  readOnly?: boolean;
 }) {
   const [isAdding, setIsAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -163,50 +171,76 @@ export function MealFoodsList({
     });
   }
 
+  if (readOnly && foods.length === 0) return null;
+
   return (
     <div className="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-2">
       {foods.map((food) => (
-        <FoodChip key={food.id} petId={petId} food={food} />
+        <FoodChip key={food.id} petId={petId} food={food} readOnly={readOnly} />
       ))}
 
-      {isAdding ? (
-        <form action={handleAdd} className="flex items-center gap-1">
-          <input
-            type="url"
-            name="url"
-            placeholder="Paste a food link"
-            required
-            autoFocus
-            className="w-40 rounded border border-gray-300 px-2 py-1 text-xs"
-          />
-          <button
-            type="submit"
-            disabled={isPending}
-            className="rounded bg-black px-2 py-1 text-xs text-white disabled:opacity-50"
+      {!readOnly &&
+        (isAdding ? (
+          <form
+            action={handleAdd}
+            className="flex flex-col gap-1 rounded border border-gray-200 p-2 text-xs"
           >
-            {isPending ? "Adding…" : "Add"}
-          </button>
+            <input
+              type="text"
+              name="title"
+              placeholder="Food name"
+              className="rounded border border-gray-300 px-2 py-1"
+            />
+            <input
+              type="text"
+              name="amount"
+              placeholder="Amount to feed (e.g. 1/2 cup)"
+              className="rounded border border-gray-300 px-2 py-1"
+            />
+            <input
+              type="url"
+              name="url"
+              placeholder="Product link"
+              required
+              autoFocus
+              className="rounded border border-gray-300 px-2 py-1"
+            />
+            <input
+              type="url"
+              name="image_url"
+              placeholder="Image URL (optional)"
+              className="rounded border border-gray-300 px-2 py-1"
+            />
+            {error && <p className="text-red-700">{error}</p>}
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={isPending}
+                className="btn-primary flex-1 px-2 py-1"
+              >
+                {isPending ? "Adding…" : "Add"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAdding(false);
+                  setError(null);
+                }}
+                className="btn-outline flex-1 px-2 py-1"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        ) : (
           <button
             type="button"
-            onClick={() => {
-              setIsAdding(false);
-              setError(null);
-            }}
-            className="text-xs text-gray-500 underline"
+            onClick={() => setIsAdding(true)}
+            className="rounded-full border border-dashed border-gray-300 px-3 py-1 text-xs text-gray-500 hover:bg-gray-50"
           >
-            Cancel
+            + Add food details
           </button>
-        </form>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setIsAdding(true)}
-          className="rounded-full border border-dashed border-gray-300 px-3 py-1 text-xs text-gray-500 hover:bg-gray-50"
-        >
-          + Add food details
-        </button>
-      )}
-      {error && <p className="w-full text-xs text-red-700">{error}</p>}
+        ))}
     </div>
   );
 }

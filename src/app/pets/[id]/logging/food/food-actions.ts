@@ -22,14 +22,20 @@ export async function addMealFood(
     return { ok: false, error: "Enter a valid URL" };
   }
 
-  const { title, imageUrl } = await fetchLinkPreview(parsed.toString());
+  const manualTitle = String(formData.get("title") ?? "").trim();
+  const manualAmount = String(formData.get("amount") ?? "").trim();
+  const manualImageUrl = String(formData.get("image_url") ?? "").trim();
+
+  const { title: scrapedTitle, imageUrl: scrapedImageUrl } =
+    await fetchLinkPreview(parsed.toString());
 
   const supabase = await createClient();
   const { error } = await supabase.from("meal_foods").insert({
     schedule_id: scheduleId,
     url: parsed.toString(),
-    title: title ?? parsed.hostname,
-    image_url: imageUrl,
+    title: manualTitle || scrapedTitle || parsed.hostname,
+    amount: manualAmount || null,
+    image_url: manualImageUrl || scrapedImageUrl,
   });
   if (error) return { ok: false, error: error.message };
 

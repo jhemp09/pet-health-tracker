@@ -11,10 +11,14 @@ import {
 } from "./actions";
 
 type ScheduleTime = { id: string; scheduled_time: string };
+type FeedingSchedule = { id: string; label: string };
 type Medication = {
   id: string;
   name: string;
   dosage: string | null;
+  notes: string | null;
+  product_url: string | null;
+  linked_schedule_id: string | null;
   interval_days: number;
   start_date: string | null;
   times: ScheduleTime[];
@@ -94,13 +98,20 @@ function MedicationRow({
   petId,
   medication,
   todayDate,
+  feedingSchedules,
 }: {
   petId: string;
   medication: Medication;
   todayDate: string;
+  feedingSchedules: FeedingSchedule[];
 }) {
   const [name, setName] = useState(medication.name);
   const [dosage, setDosage] = useState(medication.dosage ?? "");
+  const [notes, setNotes] = useState(medication.notes ?? "");
+  const [productUrl, setProductUrl] = useState(medication.product_url ?? "");
+  const [linkedScheduleId, setLinkedScheduleId] = useState(
+    medication.linked_schedule_id ?? ""
+  );
   const [intervalDays, setIntervalDays] = useState(
     medication.interval_days.toString()
   );
@@ -148,6 +159,45 @@ function MedicationRow({
             className="rounded border border-gray-300 px-2 py-1 text-sm"
           />
         </label>
+      </div>
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="flex flex-1 flex-col gap-1 text-xs">
+          How to give it
+          <input
+            type="text"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="e.g. crush into food"
+            className="rounded border border-gray-300 px-2 py-1 text-sm"
+          />
+        </label>
+        <label className="flex flex-1 flex-col gap-1 text-xs">
+          Product link
+          <input
+            type="url"
+            value={productUrl}
+            onChange={(e) => setProductUrl(e.target.value)}
+            placeholder="https://…"
+            className="rounded border border-gray-300 px-2 py-1 text-sm"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs">
+          Linked meal
+          <select
+            value={linkedScheduleId}
+            onChange={(e) => setLinkedScheduleId(e.target.value)}
+            className="rounded border border-gray-300 px-2 py-1 text-sm"
+          >
+            <option value="">None</option>
+            {feedingSchedules.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <div className="flex gap-2">
         <button
           type="button"
           disabled={isPending}
@@ -155,13 +205,16 @@ function MedicationRow({
             const formData = new FormData();
             formData.set("name", name);
             formData.set("dosage", dosage);
+            formData.set("notes", notes);
+            formData.set("product_url", productUrl);
+            formData.set("linked_schedule_id", linkedScheduleId);
             formData.set("interval_days", intervalDays);
             formData.set("start_date", startDate);
             startTransition(() =>
               updateMedication(petId, medication.id, formData)
             );
           }}
-          className="rounded bg-black px-3 py-1.5 text-sm text-white disabled:opacity-50"
+          className="btn-primary px-3 py-1.5 text-sm"
         >
           Save
         </button>
@@ -192,10 +245,12 @@ export function ScheduleEditor({
   petId,
   medications,
   todayDate,
+  feedingSchedules,
 }: {
   petId: string;
   medications: Medication[];
   todayDate: string;
+  feedingSchedules: FeedingSchedule[];
 }) {
   const [open, setOpen] = useState(false);
 
@@ -216,63 +271,101 @@ export function ScheduleEditor({
               petId={petId}
               medication={m}
               todayDate={todayDate}
+              feedingSchedules={feedingSchedules}
             />
           ))}
           <form
             action={addMedication.bind(null, petId)}
-            className="flex flex-wrap items-end gap-2 border-t border-gray-100 pt-3"
+            className="flex flex-col gap-2 border-t border-gray-100 pt-3"
           >
-            <label className="flex flex-col gap-1 text-xs">
-              Name
-              <input
-                type="text"
-                name="name"
-                required
-                className="rounded border border-gray-300 px-2 py-1 text-sm"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-xs">
-              Dosage
-              <input
-                type="text"
-                name="dosage"
-                placeholder="e.g. 5mg"
-                className="rounded border border-gray-300 px-2 py-1 text-sm"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-xs">
-              First time
-              <input
-                type="time"
-                name="scheduled_time"
-                required
-                className="rounded border border-gray-300 px-2 py-1 text-sm"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-xs">
-              Every ___ day(s)
-              <input
-                type="number"
-                name="interval_days"
-                min={1}
-                step={1}
-                defaultValue={1}
-                className="w-16 rounded border border-gray-300 px-2 py-1 text-sm"
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-xs">
-              Cycle start date
-              <input
-                type="date"
-                name="start_date"
-                defaultValue={todayDate}
-                required
-                className="rounded border border-gray-300 px-2 py-1 text-sm"
-              />
-            </label>
+            <div className="flex flex-wrap items-end gap-2">
+              <label className="flex flex-col gap-1 text-xs">
+                Name
+                <input
+                  type="text"
+                  name="name"
+                  required
+                  className="rounded border border-gray-300 px-2 py-1 text-sm"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs">
+                Dosage
+                <input
+                  type="text"
+                  name="dosage"
+                  placeholder="e.g. 5mg"
+                  className="rounded border border-gray-300 px-2 py-1 text-sm"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs">
+                First time
+                <input
+                  type="time"
+                  name="scheduled_time"
+                  required
+                  className="rounded border border-gray-300 px-2 py-1 text-sm"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs">
+                Every ___ day(s)
+                <input
+                  type="number"
+                  name="interval_days"
+                  min={1}
+                  step={1}
+                  defaultValue={1}
+                  className="w-16 rounded border border-gray-300 px-2 py-1 text-sm"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs">
+                Cycle start date
+                <input
+                  type="date"
+                  name="start_date"
+                  defaultValue={todayDate}
+                  required
+                  className="rounded border border-gray-300 px-2 py-1 text-sm"
+                />
+              </label>
+            </div>
+            <div className="flex flex-wrap items-end gap-2">
+              <label className="flex flex-1 flex-col gap-1 text-xs">
+                How to give it
+                <input
+                  type="text"
+                  name="notes"
+                  placeholder="e.g. crush into food"
+                  className="rounded border border-gray-300 px-2 py-1 text-sm"
+                />
+              </label>
+              <label className="flex flex-1 flex-col gap-1 text-xs">
+                Product link
+                <input
+                  type="url"
+                  name="product_url"
+                  placeholder="https://…"
+                  className="rounded border border-gray-300 px-2 py-1 text-sm"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs">
+                Linked meal
+                <select
+                  name="linked_schedule_id"
+                  defaultValue=""
+                  className="rounded border border-gray-300 px-2 py-1 text-sm"
+                >
+                  <option value="">None</option>
+                  {feedingSchedules.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
             <button
               type="submit"
-              className="rounded bg-black px-3 py-1.5 text-sm text-white"
+              className="btn-primary w-fit px-3 py-1.5 text-sm"
             >
               Add medication
             </button>
