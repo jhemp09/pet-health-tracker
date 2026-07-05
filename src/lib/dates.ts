@@ -38,6 +38,25 @@ export function localNoonInstant(timezone: string, dateStr: string): Date {
 // day strings, so this is pure date arithmetic with no timezone involved.
 // Dates before the anchor are treated as due, so editing historical entries
 // from before an interval was configured isn't hidden by the filter.
+// Renders a birth date as a human age like "3 years" or "8 months", using
+// whole months once past a year so early life stages stay legible.
+export function formatAge(birthDate: string, now: Date): string {
+  const birth = new Date(`${birthDate}T00:00:00.000Z`);
+  const nowUtc = new Date(
+    `${now.toISOString().slice(0, 10)}T00:00:00.000Z`
+  );
+  let months =
+    (nowUtc.getUTCFullYear() - birth.getUTCFullYear()) * 12 +
+    (nowUtc.getUTCMonth() - birth.getUTCMonth());
+  if (nowUtc.getUTCDate() < birth.getUTCDate()) months -= 1;
+  months = Math.max(0, months);
+
+  if (months < 1) return "newborn";
+  if (months < 12) return `${months} month${months === 1 ? "" : "s"}`;
+  const years = Math.floor(months / 12);
+  return `${years} year${years === 1 ? "" : "s"}`;
+}
+
 export function isDueOnInterval(
   startDate: string | null,
   targetDate: string,

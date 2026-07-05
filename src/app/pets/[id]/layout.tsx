@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 import { createClient, requireUser } from "@/lib/supabase/server";
+import { formatAge } from "@/lib/dates";
 import { BackLink } from "./back-link";
 import { BottomNav } from "./bottom-nav";
+import { PetHeaderPhoto } from "./pet-header-photo";
 
 export default async function PetLayout({
   children,
@@ -28,22 +30,20 @@ export default async function PetLayout({
     <div className="mx-auto flex min-h-screen max-w-2xl flex-col px-6 pb-20 pt-6">
       <div className="mb-4">
         <BackLink petId={id} householdId={pet.household_id} />
-        <div className="mt-1 flex items-center gap-2">
-          {pet.photo_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={pet.photo_url}
-              alt=""
-              className="h-8 w-8 rounded-full object-cover"
-            />
-          ) : null}
-          <h1 className="text-xl font-semibold">{pet.name}</h1>
+        <div className="mt-2 flex items-center gap-3">
+          <PetHeaderPhoto
+            petId={id}
+            photoUrl={pet.photo_url}
+            petName={pet.name}
+          />
+          <div>
+            <h1 className="text-xl font-semibold">{pet.name}</h1>
+            <p className="text-sm text-gray-600">
+              {pet.breed ? `${pet.breed} · ` : ""}
+              {pet.birth_date ? formatAge(pet.birth_date, new Date()) : ""}
+            </p>
+          </div>
         </div>
-        <p className="text-sm text-gray-600">
-          {pet.species}
-          {pet.breed ? ` · ${pet.breed}` : ""}
-          {pet.birth_date ? ` · born ${pet.birth_date}` : ""}
-        </p>
       </div>
 
       {children}

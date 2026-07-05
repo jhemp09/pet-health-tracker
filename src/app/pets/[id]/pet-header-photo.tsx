@@ -2,14 +2,16 @@
 
 import { useRef, useState, useTransition } from "react";
 import { PhotoCropModal } from "@/components/photo-crop-modal";
-import { removePetPhoto, updatePetPhoto } from "./photo-actions";
+import { removePetPhoto, updatePetPhoto } from "./logging/photo-actions";
 
-export function PhotoUpload({
+export function PetHeaderPhoto({
   petId,
   photoUrl,
+  petName,
 }: {
   petId: string;
   photoUrl: string | null;
+  petName: string;
 }) {
   const [isPending, startTransition] = useTransition();
   const [pendingImageSrc, setPendingImageSrc] = useState<string | null>(null);
@@ -39,7 +41,8 @@ export function PhotoUpload({
     });
   }
 
-  function handleRemove() {
+  function handleRemove(e: React.MouseEvent) {
+    e.stopPropagation();
     setError(null);
     startTransition(async () => {
       const result = await removePetPhoto(petId);
@@ -48,49 +51,50 @@ export function PhotoUpload({
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded border border-gray-200 p-3">
-      <div className="flex items-center gap-3">
+    <div className="flex flex-col items-center gap-1">
+      <button
+        type="button"
+        disabled={isPending}
+        onClick={() => inputRef.current?.click()}
+        className="group relative h-20 w-20 shrink-0 rounded-full disabled:opacity-50"
+      >
         {photoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={photoUrl}
             alt=""
-            className="h-14 w-14 rounded-full object-cover"
+            className="h-20 w-20 rounded-full object-cover"
           />
         ) : (
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-xs text-gray-400">
-            No photo
+          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gray-100 text-lg text-gray-400">
+            {petName.charAt(0).toUpperCase()}
           </div>
         )}
-        <div className="flex flex-col gap-1">
-          <button
-            type="button"
-            disabled={isPending}
-            onClick={() => inputRef.current?.click()}
-            className="w-fit rounded bg-black px-3 py-1.5 text-sm text-white disabled:opacity-50"
+        <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 text-[11px] font-medium text-white opacity-0 transition group-hover:bg-black/40 group-hover:opacity-100">
+          {isPending ? "Saving…" : photoUrl ? "Change" : "Add photo"}
+        </span>
+        {photoUrl && (
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={handleRemove}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") handleRemove(e as unknown as React.MouseEvent);
+            }}
+            className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs text-red-600 shadow"
           >
-            {isPending ? "Saving…" : photoUrl ? "Change photo" : "Add photo"}
-          </button>
-          {photoUrl && (
-            <button
-              type="button"
-              disabled={isPending}
-              onClick={handleRemove}
-              className="w-fit text-xs text-red-600 underline"
-            >
-              Remove photo
-            </button>
-          )}
-          <input
-            ref={inputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="hidden"
-          />
-        </div>
-      </div>
-      {error && <p className="text-xs text-red-700">{error}</p>}
+            ×
+          </span>
+        )}
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        className="hidden"
+      />
+      {error && <p className="max-w-[6rem] text-center text-[11px] text-red-700">{error}</p>}
 
       {pendingImageSrc && (
         <PhotoCropModal
