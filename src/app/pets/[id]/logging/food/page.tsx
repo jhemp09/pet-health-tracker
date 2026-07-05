@@ -65,7 +65,7 @@ export default async function FeedingPage({
     scheduleIdList.length > 0
       ? await supabase
           .from("meal_foods")
-          .select("id, schedule_id, url, title, image_url")
+          .select("id, schedule_id, url, title, image_url, amount")
           .in("schedule_id", scheduleIdList)
           .order("created_at", { ascending: true })
       : { data: [] };

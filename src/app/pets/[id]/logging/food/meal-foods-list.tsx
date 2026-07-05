@@ -8,6 +8,7 @@ type Food = {
   url: string;
   title: string | null;
   image_url: string | null;
+  amount: string | null;
 };
 
 function FoodChip({
@@ -47,6 +48,20 @@ function FoodChip({
           name="title"
           defaultValue={food.title ?? ""}
           placeholder="Food name"
+          className="rounded border border-gray-300 px-2 py-1"
+        />
+        <input
+          type="text"
+          name="amount"
+          defaultValue={food.amount ?? ""}
+          placeholder="Amount to feed (e.g. 1/2 cup)"
+          className="rounded border border-gray-300 px-2 py-1"
+        />
+        <input
+          type="url"
+          name="url"
+          defaultValue={food.url}
+          placeholder="Product link"
           className="rounded border border-gray-300 px-2 py-1"
         />
         <input
@@ -100,8 +115,9 @@ function FoodChip({
             🛒
           </span>
         )}
-        <span className="max-w-[8rem] truncate">
+        <span className="max-w-[10rem] truncate">
           {food.title ?? food.url}
+          {food.amount ? ` · ${food.amount}` : ""}
         </span>
       </a>
       <button

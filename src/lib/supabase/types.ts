@@ -138,6 +138,7 @@ export interface Database {
           url: string;
           title: string | null;
           image_url: string | null;
+          amount: string | null;
           created_at: string;
         };
         Insert: {
@@ -145,11 +146,13 @@ export interface Database {
           url: string;
           title?: string | null;
           image_url?: string | null;
+          amount?: string | null;
         };
         Update: {
           url?: string;
           title?: string | null;
           image_url?: string | null;
+          amount?: string | null;
         };
         Relationships: [];
       };

@@ -46,7 +46,9 @@ export async function updateMealFood(
   formData: FormData
 ): Promise<{ ok: boolean; error?: string }> {
   const title = String(formData.get("title") ?? "").trim();
+  const amount = String(formData.get("amount") ?? "").trim();
   const imageUrl = String(formData.get("image_url") ?? "").trim();
+  const rawUrl = String(formData.get("url") ?? "").trim();
 
   if (imageUrl) {
     try {
@@ -59,12 +61,27 @@ export async function updateMealFood(
     }
   }
 
+  let url: string | undefined;
+  if (rawUrl) {
+    try {
+      const parsed = new URL(rawUrl);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        return { ok: false, error: "Enter a valid URL" };
+      }
+      url = parsed.toString();
+    } catch {
+      return { ok: false, error: "Enter a valid URL" };
+    }
+  }
+
   const supabase = await createClient();
   const { error } = await supabase
     .from("meal_foods")
     .update({
       title: title || null,
+      amount: amount || null,
       image_url: imageUrl || null,
+      ...(url ? { url } : {}),
     })
     .eq("id", foodId);
   if (error) return { ok: false, error: error.message };

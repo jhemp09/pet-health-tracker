@@ -11,6 +11,7 @@ type Food = {
   url: string;
   title: string | null;
   image_url: string | null;
+  amount: string | null;
 };
 
 export function MealRow({
