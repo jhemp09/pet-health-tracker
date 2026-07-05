@@ -71,12 +71,24 @@ export function BottomNav({
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-xs ${
-                isActive ? "text-black" : "text-gray-400"
-              }`}
+              className="flex flex-1 flex-col items-center gap-1 py-2 text-xs"
             >
-              <span className="h-6 w-6">{item.icon}</span>
-              {item.label}
+              <span
+                className="flex h-8 w-8 items-center justify-center rounded-full transition-colors"
+                style={
+                  isActive
+                    ? { background: "var(--color-primary-light)", color: "var(--color-primary-dark)" }
+                    : { color: "var(--color-muted)" }
+                }
+              >
+                <span className="h-5 w-5">{item.icon}</span>
+              </span>
+              <span
+                className="font-medium"
+                style={{ color: isActive ? "var(--color-primary-dark)" : "var(--color-muted)" }}
+              >
+                {item.label}
+              </span>
             </Link>
           );
         })}

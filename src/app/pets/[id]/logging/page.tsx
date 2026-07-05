@@ -7,6 +7,8 @@ const ITEMS = [
   {
     slug: "food",
     label: "Food",
+    color: "var(--color-food)",
+    bg: "var(--color-food-light)",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
         <path
@@ -20,6 +22,8 @@ const ITEMS = [
   {
     slug: "medications",
     label: "Medications",
+    color: "var(--color-meds)",
+    bg: "var(--color-meds-light)",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
         <rect
@@ -37,6 +41,8 @@ const ITEMS = [
   {
     slug: "demeanor",
     label: "Demeanor",
+    color: "var(--color-demeanor)",
+    bg: "var(--color-demeanor-light)",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
         <circle cx="12" cy="13" r="7" />
@@ -48,6 +54,8 @@ const ITEMS = [
   {
     slug: "weight",
     label: "Weight",
+    color: "var(--color-weight)",
+    bg: "var(--color-weight-light)",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
         <circle cx="12" cy="13" r="8" />
@@ -186,10 +194,15 @@ export default async function LoggingHubPage({
           <Link
             key={item.slug}
             href={`/pets/${petId}/logging/${item.slug}`}
-            className="flex flex-col items-center gap-2 rounded-lg border border-gray-200 p-4 hover:bg-gray-50"
+            className="card flex flex-col items-center gap-2 p-4 transition-transform hover:-translate-y-0.5"
           >
-            <span className="h-7 w-7 text-gray-700">{item.icon}</span>
-            <span className="font-medium">{item.label}</span>
+            <span
+              className="flex h-12 w-12 items-center justify-center rounded-full"
+              style={{ background: item.bg, color: item.color }}
+            >
+              <span className="h-6 w-6">{item.icon}</span>
+            </span>
+            <span className="font-heading font-medium">{item.label}</span>
           </Link>
         ))}
       </div>

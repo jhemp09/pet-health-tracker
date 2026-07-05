@@ -10,6 +10,29 @@ type Stats = {
   demeanorDaysLogged: number;
 };
 
+function StatTile({
+  label,
+  value,
+  color,
+  bg,
+}: {
+  label: string;
+  value: string;
+  color: string;
+  bg: string;
+}) {
+  return (
+    <div className="rounded-xl p-3" style={{ background: bg }}>
+      <p className="text-xs font-medium" style={{ color }}>
+        {label}
+      </p>
+      <p className="mt-0.5 text-sm font-semibold" style={{ color: "var(--foreground)" }}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
 export function PetProfileCard({
   petId,
   name,
@@ -28,6 +51,7 @@ export function PetProfileCard({
   stats: Stats;
 }) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -42,7 +66,7 @@ export function PetProfileCard({
 
   if (isEditing) {
     return (
-      <section className="rounded-lg border border-gray-200 p-4">
+      <section className="card p-4">
         <form action={handleSubmit} className="flex flex-col gap-3">
           <label className="flex flex-col gap-1 text-sm">
             Name
@@ -87,14 +111,14 @@ export function PetProfileCard({
             <button
               type="submit"
               disabled={isPending}
-              className="flex-1 rounded bg-black px-3 py-1.5 text-sm text-white disabled:opacity-50"
+              className="btn-primary flex-1 px-3 py-1.5 text-sm"
             >
               {isPending ? "Saving…" : "Save"}
             </button>
             <button
               type="button"
               onClick={() => setIsEditing(false)}
-              className="flex-1 rounded border border-gray-300 px-3 py-1.5 text-sm"
+              className="btn-outline flex-1 px-3 py-1.5 text-sm"
             >
               Cancel
             </button>
@@ -105,61 +129,91 @@ export function PetProfileCard({
   }
 
   return (
-    <section className="rounded-lg border border-gray-200 p-4">
+    <section className="card p-4">
       <div className="flex items-start justify-between">
-        <div>
-          <h2 className="font-medium">{name}</h2>
-          <p className="text-sm text-gray-600">
-            {breed ? `${breed} · ` : ""}
-            {age ?? "Age unknown"}
-          </p>
-          {birthDate && (
-            <p className="text-xs text-gray-500">Born {birthDate}</p>
-          )}
-        </div>
+        <button
+          type="button"
+          onClick={() => setIsExpanded((e) => !e)}
+          className="flex flex-1 items-start gap-2 text-left"
+        >
+          <span
+            className="mt-1 text-xs transition-transform"
+            style={{
+              color: "var(--color-primary)",
+              transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+            }}
+          >
+            ▶
+          </span>
+          <div>
+            <h2 className="font-heading text-lg font-semibold">{name}</h2>
+            <p className="text-sm" style={{ color: "var(--color-muted)" }}>
+              {breed ? `${breed} · ` : ""}
+              {age ?? "Age unknown"}
+            </p>
+          </div>
+        </button>
         <button
           type="button"
           onClick={() => setIsEditing(true)}
-          className="text-sm text-gray-500 underline"
+          className="text-sm underline"
+          style={{ color: "var(--color-primary)" }}
         >
           Edit
         </button>
       </div>
 
-      <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
-        <div>
-          <dt className="text-xs text-gray-500">Latest weight</dt>
-          <dd>
-            {stats.latestWeight
-              ? `${stats.latestWeight.value} ${stats.latestWeight.unit}${
-                  stats.latestWeight.changeText
-                    ? ` (${stats.latestWeight.changeText})`
-                    : ""
-                }`
-              : "—"}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs text-gray-500">Food intake (7d avg)</dt>
-          <dd>
-            {stats.foodIntake
-              ? `${stats.foodIntake.avg}%${
-                  stats.foodIntake.trendText
-                    ? ` (${stats.foodIntake.trendText})`
-                    : ""
-                }`
-              : "—"}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs text-gray-500">Meds given (7d)</dt>
-          <dd>{stats.medAdherence ? `${stats.medAdherence.pct}%` : "—"}</dd>
-        </div>
-        <div>
-          <dt className="text-xs text-gray-500">Demeanor logged</dt>
-          <dd>{stats.demeanorDaysLogged}/7 days</dd>
-        </div>
-      </dl>
+      {isExpanded && (
+        <>
+          {birthDate && (
+            <p className="ml-5 mt-1 text-xs" style={{ color: "var(--color-muted)" }}>
+              Born {birthDate}
+            </p>
+          )}
+          <dl className="mt-3 grid grid-cols-2 gap-2">
+            <StatTile
+              label="Latest weight"
+              value={
+                stats.latestWeight
+                  ? `${stats.latestWeight.value} ${stats.latestWeight.unit}${
+                      stats.latestWeight.changeText
+                        ? ` (${stats.latestWeight.changeText})`
+                        : ""
+                    }`
+                  : "—"
+              }
+              color="var(--color-weight)"
+              bg="var(--color-weight-light)"
+            />
+            <StatTile
+              label="Food intake (7d avg)"
+              value={
+                stats.foodIntake
+                  ? `${stats.foodIntake.avg}%${
+                      stats.foodIntake.trendText
+                        ? ` (${stats.foodIntake.trendText})`
+                        : ""
+                    }`
+                  : "—"
+              }
+              color="var(--color-food)"
+              bg="var(--color-food-light)"
+            />
+            <StatTile
+              label="Meds given (7d)"
+              value={stats.medAdherence ? `${stats.medAdherence.pct}%` : "—"}
+              color="var(--color-meds)"
+              bg="var(--color-meds-light)"
+            />
+            <StatTile
+              label="Demeanor logged"
+              value={`${stats.demeanorDaysLogged}/7 days`}
+              color="var(--color-demeanor)"
+              bg="var(--color-demeanor-light)"
+            />
+          </dl>
+        </>
+      )}
     </section>
   );
 }
