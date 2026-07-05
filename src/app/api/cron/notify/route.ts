@@ -1,14 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendPushToUsers } from "@/lib/notifications/send";
-import { isDue, localParts, timeStringToMinutes } from "@/lib/notifications/schedule";
+import { daysSince, localDateStr } from "@/lib/notifications/schedule";
 
 export const dynamic = "force-dynamic";
 
-const MED_TOLERANCE_MINUTES = 180;
-const WEEKLY_WEIGH_IN_DAY = "Sun";
-const WEEKLY_WEIGH_IN_TIME = "09:00";
-const DAILY_DEMEANOR_TIME = "20:00";
+const WEIGH_IN_REMINDER_DAYS = 7;
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
@@ -18,7 +15,7 @@ export async function GET(request: NextRequest) {
 
   const supabase = createServiceClient();
   const now = new Date();
-  const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+  const weekAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000 * 8).toISOString();
 
   const [{ data: households }, { data: pets }] = await Promise.all([
     supabase.from("households").select("id, timezone"),
@@ -29,38 +26,40 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ sent: 0 });
   }
 
-  const timezoneByHousehold = new Map(
-    households.map((h) => [h.id, h.timezone])
-  );
+  const timezoneByHousehold = new Map(households.map((h) => [h.id, h.timezone]));
 
-  let sentCount = 0;
+  // user_id -> lines to include in that user's digest
+  const digestByUser = new Map<string, string[]>();
+
+  function addLine(userId: string, line: string) {
+    const lines = digestByUser.get(userId) ?? [];
+    lines.push(line);
+    digestByUser.set(userId, lines);
+  }
 
   for (const pet of pets) {
     const timezone = timezoneByHousehold.get(pet.household_id) ?? "UTC";
-    const { weekday, dateStr, minutesSinceMidnight } = localParts(
-      timezone,
-      now
-    );
+    const today = localDateStr(timezone, now);
 
     const [
       { data: schedules },
-      { data: recentFeedingLogs },
+      { data: todaysFeedingLogs },
       { data: medications },
-      { data: recentMedLogs },
-      { data: recentWeightLogs },
-      { data: recentDemeanorLogs },
+      { data: todaysMedLogs },
+      { data: lastWeightLog },
+      { data: todaysDemeanorLogs },
       { data: preferences },
     ] = await Promise.all([
       supabase
         .from("feeding_schedules")
-        .select("id, label, scheduled_time")
+        .select("id, label")
         .eq("pet_id", pet.id)
         .eq("active", true),
       supabase
         .from("feeding_logs")
         .select("schedule_id, fed_at")
         .eq("pet_id", pet.id)
-        .gte("fed_at", dayAgo),
+        .gte("fed_at", weekAgo),
       supabase
         .from("medications")
         .select("id, name, schedule_times")
@@ -70,17 +69,19 @@ export async function GET(request: NextRequest) {
         .from("medication_logs")
         .select("medication_id, given_at")
         .eq("pet_id", pet.id)
-        .gte("given_at", dayAgo),
+        .gte("given_at", weekAgo),
       supabase
         .from("weight_logs")
         .select("logged_at")
         .eq("pet_id", pet.id)
-        .gte("logged_at", dayAgo),
+        .order("logged_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
       supabase
         .from("demeanor_logs")
         .select("logged_at")
         .eq("pet_id", pet.id)
-        .gte("logged_at", dayAgo),
+        .gte("logged_at", weekAgo),
       supabase
         .from("notification_preferences")
         .select(
@@ -91,94 +92,66 @@ export async function GET(request: NextRequest) {
 
     if (!preferences || preferences.length === 0) continue;
 
-    // Feeding reminders
-    const feedingRecipients = preferences
-      .filter((p) => p.feeding_enabled)
-      .map((p) => p.user_id);
-    for (const schedule of schedules ?? []) {
-      const scheduledMinutes = timeStringToMinutes(schedule.scheduled_time);
-      if (!isDue(scheduledMinutes, minutesSinceMidnight)) continue;
+    const loggedTodayBySchedule = new Set(
+      (todaysFeedingLogs ?? [])
+        .filter((log) => localDateStr(timezone, new Date(log.fed_at)) === today)
+        .map((log) => log.schedule_id)
+    );
+    const unloggedMeals = (schedules ?? []).filter(
+      (s) => !loggedTodayBySchedule.has(s.id)
+    );
 
-      const alreadyLogged = (recentFeedingLogs ?? []).some(
-        (log) =>
-          log.schedule_id === schedule.id &&
-          localParts(timezone, new Date(log.fed_at)).dateStr === dateStr
+    const dosesLoggedTodayByMed = new Map<string, number>();
+    for (const log of todaysMedLogs ?? []) {
+      if (localDateStr(timezone, new Date(log.given_at)) !== today) continue;
+      dosesLoggedTodayByMed.set(
+        log.medication_id,
+        (dosesLoggedTodayByMed.get(log.medication_id) ?? 0) + 1
       );
-      if (alreadyLogged) continue;
-
-      await sendPushToUsers(supabase, feedingRecipients, {
-        title: `${pet.name}'s ${schedule.label}`,
-        body: `Time to feed ${pet.name} — log how much they ate.`,
-        url: `/pets/${pet.id}`,
-      });
-      sentCount += feedingRecipients.length;
     }
+    const pendingMeds = (medications ?? []).filter(
+      (m) => (dosesLoggedTodayByMed.get(m.id) ?? 0) < Math.max(m.schedule_times.length, 1)
+    );
 
-    // Medication reminders
-    const medRecipients = preferences
-      .filter((p) => p.medication_enabled)
-      .map((p) => p.user_id);
-    for (const medication of medications ?? []) {
-      for (const time of medication.schedule_times) {
-        const scheduledMinutes = timeStringToMinutes(time);
-        if (!isDue(scheduledMinutes, minutesSinceMidnight)) continue;
+    const weightOverdue =
+      !lastWeightLog ||
+      daysSince(timezone, lastWeightLog.logged_at, now) >= WEIGH_IN_REMINDER_DAYS;
 
-        const alreadyLogged = (recentMedLogs ?? []).some((log) => {
-          if (log.medication_id !== medication.id) return false;
-          const logParts = localParts(timezone, new Date(log.given_at));
-          return (
-            logParts.dateStr === dateStr &&
-            Math.abs(logParts.minutesSinceMidnight - scheduledMinutes) <=
-              MED_TOLERANCE_MINUTES
-          );
-        });
-        if (alreadyLogged) continue;
+    const demeanorLoggedToday = (todaysDemeanorLogs ?? []).some(
+      (log) => localDateStr(timezone, new Date(log.logged_at)) === today
+    );
 
-        await sendPushToUsers(supabase, medRecipients, {
-          title: `${pet.name}'s medication`,
-          body: `Time for ${pet.name}'s ${medication.name} — mark it given.`,
-          url: `/pets/${pet.id}`,
-        });
-        sentCount += medRecipients.length;
+    for (const pref of preferences) {
+      if (pref.feeding_enabled && unloggedMeals.length > 0) {
+        addLine(
+          pref.user_id,
+          `${pet.name}: ${unloggedMeals.length} meal${unloggedMeals.length > 1 ? "s" : ""} not logged today (${unloggedMeals.map((s) => s.label).join(", ")})`
+        );
+      }
+      if (pref.medication_enabled && pendingMeds.length > 0) {
+        addLine(
+          pref.user_id,
+          `${pet.name}: medication due (${pendingMeds.map((m) => m.name).join(", ")})`
+        );
+      }
+      if (pref.weight_enabled && weightOverdue) {
+        addLine(pref.user_id, `${pet.name}: hasn't been weighed in over a week`);
+      }
+      if (pref.demeanor_enabled && !demeanorLoggedToday) {
+        addLine(pref.user_id, `${pet.name}: no demeanor check-in today`);
       }
     }
+  }
 
-    // Weekly weigh-in reminder
-    if (
-      weekday === WEEKLY_WEIGH_IN_DAY &&
-      isDue(timeStringToMinutes(WEEKLY_WEIGH_IN_TIME), minutesSinceMidnight)
-    ) {
-      const weightRecipients = preferences
-        .filter((p) => p.weight_enabled)
-        .map((p) => p.user_id);
-      const loggedThisWeek = (recentWeightLogs ?? []).length > 0;
-      if (!loggedThisWeek) {
-        await sendPushToUsers(supabase, weightRecipients, {
-          title: `Weigh in ${pet.name}`,
-          body: `It's been a while since ${pet.name}'s last weight check.`,
-          url: `/pets/${pet.id}`,
-        });
-        sentCount += weightRecipients.length;
-      }
-    }
-
-    // Daily demeanor check-in reminder
-    if (isDue(timeStringToMinutes(DAILY_DEMEANOR_TIME), minutesSinceMidnight)) {
-      const demeanorRecipients = preferences
-        .filter((p) => p.demeanor_enabled)
-        .map((p) => p.user_id);
-      const loggedToday = (recentDemeanorLogs ?? []).some(
-        (log) => localParts(timezone, new Date(log.logged_at)).dateStr === dateStr
-      );
-      if (!loggedToday) {
-        await sendPushToUsers(supabase, demeanorRecipients, {
-          title: `How's ${pet.name} doing?`,
-          body: `Log ${pet.name}'s energy, appetite, and any vomiting today.`,
-          url: `/pets/${pet.id}`,
-        });
-        sentCount += demeanorRecipients.length;
-      }
-    }
+  let sentCount = 0;
+  for (const [userId, lines] of digestByUser) {
+    if (lines.length === 0) continue;
+    await sendPushToUsers(supabase, [userId], {
+      title: "Pet Health reminders",
+      body: lines.join(" · "),
+      url: "/",
+    });
+    sentCount += 1;
   }
 
   return NextResponse.json({ sent: sentCount });
