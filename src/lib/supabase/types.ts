@@ -377,6 +377,29 @@ export interface Database {
         };
         Relationships: [];
       };
+      change_log_entries: {
+        Row: {
+          id: string;
+          pet_id: string;
+          event_date: string;
+          category: "medication" | "food" | "bloodwork" | "manual";
+          description: string;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          pet_id: string;
+          event_date: string;
+          category: "medication" | "food" | "bloodwork" | "manual";
+          description: string;
+          created_by?: string | null;
+        };
+        Update: {
+          event_date?: string;
+          description?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {

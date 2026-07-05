@@ -3,6 +3,7 @@
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { logChangeEvent } from "@/lib/change-log";
 
 export async function uploadBloodwork(petId: string, formData: FormData) {
   const file = formData.get("file");
@@ -45,6 +46,14 @@ export async function uploadBloodwork(petId: string, formData: FormData) {
     taken_at: takenAt,
     notes,
   });
+
+  await logChangeEvent(
+    supabase,
+    petId,
+    "bloodwork",
+    `Vet visit / bloodwork: ${file.name}`,
+    takenAt ?? undefined
+  );
 
   revalidatePath(`/pets/${petId}/medical`);
 }

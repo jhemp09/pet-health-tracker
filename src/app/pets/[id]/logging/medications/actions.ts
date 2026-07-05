@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { localDateStr } from "@/lib/dates";
+import { logChangeEvent } from "@/lib/change-log";
 
 const BASE_PATH_SUFFIX = "/logging/medications";
 
@@ -59,6 +60,12 @@ export async function addMedication(petId: string, formData: FormData) {
       scheduled_time: scheduledTime,
       linked_schedule_id: linkedScheduleId,
     });
+    await logChangeEvent(
+      supabase,
+      petId,
+      "medication",
+      `Added medication "${name}"${dosage ? ` (${dosage})` : ""} at ${scheduledTime}`
+    );
   }
 
   revalidatePath(`/pets/${petId}${BASE_PATH_SUFFIX}`);
@@ -82,6 +89,12 @@ export async function updateMedication(
   if (!name) return;
 
   const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("medications")
+    .select("name, dosage, notes")
+    .eq("id", medicationId)
+    .maybeSingle();
+
   await supabase
     .from("medications")
     .update({
@@ -94,12 +107,55 @@ export async function updateMedication(
     })
     .eq("id", medicationId);
 
+  if (existing) {
+    if (existing.name !== name) {
+      await logChangeEvent(
+        supabase,
+        petId,
+        "medication",
+        `Renamed medication "${existing.name}" to "${name}"`
+      );
+    }
+    if (existing.dosage !== dosage) {
+      await logChangeEvent(
+        supabase,
+        petId,
+        "medication",
+        `Changed dosage for "${name}" from "${existing.dosage ?? "none"}" to "${dosage ?? "none"}"`
+      );
+    }
+    if (existing.notes !== notes) {
+      await logChangeEvent(
+        supabase,
+        petId,
+        "medication",
+        `Changed administration instructions for "${name}"`
+      );
+    }
+  }
+
   revalidatePath(`/pets/${petId}${BASE_PATH_SUFFIX}`);
 }
 
 export async function removeMedication(petId: string, medicationId: string) {
   const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("medications")
+    .select("name")
+    .eq("id", medicationId)
+    .maybeSingle();
+
   await supabase.from("medications").delete().eq("id", medicationId);
+
+  if (existing) {
+    await logChangeEvent(
+      supabase,
+      petId,
+      "medication",
+      `Deleted medication "${existing.name}"`
+    );
+  }
+
   revalidatePath(`/pets/${petId}${BASE_PATH_SUFFIX}`);
 }
 
@@ -120,6 +176,20 @@ export async function addScheduleTime(
     linked_schedule_id: linkedScheduleId,
   });
 
+  const { data: medication } = await supabase
+    .from("medications")
+    .select("name")
+    .eq("id", medicationId)
+    .maybeSingle();
+  if (medication) {
+    await logChangeEvent(
+      supabase,
+      petId,
+      "medication",
+      `Added a dose time for "${medication.name}" at ${scheduledTime}`
+    );
+  }
+
   revalidatePath(`/pets/${petId}${BASE_PATH_SUFFIX}`);
 }
 
@@ -134,10 +204,52 @@ export async function updateScheduleTime(
     String(formData.get("linked_schedule_id") ?? "").trim() || null;
 
   const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("medication_schedule_times")
+    .select("scheduled_time, linked_schedule_id, medication_id, medications(name)")
+    .eq("id", scheduleTimeId)
+    .maybeSingle();
+
   await supabase
     .from("medication_schedule_times")
     .update({ scheduled_time: scheduledTime, linked_schedule_id: linkedScheduleId })
     .eq("id", scheduleTimeId);
+
+  if (existing) {
+    const medName =
+      (existing.medications as unknown as { name: string } | null)?.name ??
+      "medication";
+    if (existing.scheduled_time.slice(0, 5) !== scheduledTime) {
+      await logChangeEvent(
+        supabase,
+        petId,
+        "medication",
+        `Changed dose time for "${medName}" from ${existing.scheduled_time.slice(0, 5)} to ${scheduledTime}`
+      );
+    }
+    if (existing.linked_schedule_id !== linkedScheduleId) {
+      if (linkedScheduleId) {
+        const { data: meal } = await supabase
+          .from("feeding_schedules")
+          .select("label")
+          .eq("id", linkedScheduleId)
+          .maybeSingle();
+        await logChangeEvent(
+          supabase,
+          petId,
+          "medication",
+          `Linked "${medName}"'s ${scheduledTime} dose to meal "${meal?.label ?? "meal"}"`
+        );
+      } else {
+        await logChangeEvent(
+          supabase,
+          petId,
+          "medication",
+          `Unlinked "${medName}"'s ${scheduledTime} dose from its meal`
+        );
+      }
+    }
+  }
 
   revalidatePath(`/pets/${petId}${BASE_PATH_SUFFIX}`);
 }
@@ -147,10 +259,29 @@ export async function removeScheduleTime(
   scheduleTimeId: string
 ) {
   const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("medication_schedule_times")
+    .select("scheduled_time, medications(name)")
+    .eq("id", scheduleTimeId)
+    .maybeSingle();
+
   await supabase
     .from("medication_schedule_times")
     .delete()
     .eq("id", scheduleTimeId);
+
+  if (existing) {
+    const medName =
+      (existing.medications as unknown as { name: string } | null)?.name ??
+      "medication";
+    await logChangeEvent(
+      supabase,
+      petId,
+      "medication",
+      `Removed the ${existing.scheduled_time.slice(0, 5)} dose time for "${medName}"`
+    );
+  }
+
   revalidatePath(`/pets/${petId}${BASE_PATH_SUFFIX}`);
 }
 

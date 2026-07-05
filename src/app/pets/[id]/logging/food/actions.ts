@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { localNoonInstant } from "@/lib/dates";
+import { logChangeEvent } from "@/lib/change-log";
 
 export async function addFeedingSchedule(petId: string, formData: FormData) {
   const label = String(formData.get("label") ?? "").trim();
@@ -16,6 +17,13 @@ export async function addFeedingSchedule(petId: string, formData: FormData) {
     label,
     scheduled_time: scheduledTime,
   });
+
+  await logChangeEvent(
+    supabase,
+    petId,
+    "food",
+    `Added meal "${label}" at ${scheduledTime}`
+  );
 
   revalidatePath(`/pets/${petId}/logging/food`);
 }
@@ -31,17 +39,58 @@ export async function updateFeedingSchedule(
   if (!label || !scheduledTime) return;
 
   const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("feeding_schedules")
+    .select("label, scheduled_time")
+    .eq("id", scheduleId)
+    .maybeSingle();
+
   await supabase
     .from("feeding_schedules")
     .update({ label, scheduled_time: scheduledTime })
     .eq("id", scheduleId);
+
+  if (existing) {
+    if (existing.label !== label) {
+      await logChangeEvent(
+        supabase,
+        petId,
+        "food",
+        `Renamed meal "${existing.label}" to "${label}"`
+      );
+    }
+    if (existing.scheduled_time.slice(0, 5) !== scheduledTime) {
+      await logChangeEvent(
+        supabase,
+        petId,
+        "food",
+        `Changed "${label}" time from ${existing.scheduled_time.slice(0, 5)} to ${scheduledTime}`
+      );
+    }
+  }
 
   revalidatePath(`/pets/${petId}/logging/food`);
 }
 
 export async function removeFeedingSchedule(petId: string, scheduleId: string) {
   const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("feeding_schedules")
+    .select("label")
+    .eq("id", scheduleId)
+    .maybeSingle();
+
   await supabase.from("feeding_schedules").delete().eq("id", scheduleId);
+
+  if (existing) {
+    await logChangeEvent(
+      supabase,
+      petId,
+      "food",
+      `Deleted meal "${existing.label}"`
+    );
+  }
+
   revalidatePath(`/pets/${petId}/logging/food`);
 }
 

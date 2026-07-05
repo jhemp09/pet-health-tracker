@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { fetchLinkPreview } from "@/lib/link-preview";
+import { logChangeEvent } from "@/lib/change-log";
 
 export async function addMealFood(
   petId: string,
@@ -28,16 +29,29 @@ export async function addMealFood(
 
   const { title: scrapedTitle, imageUrl: scrapedImageUrl } =
     await fetchLinkPreview(parsed.toString());
+  const finalTitle = manualTitle || scrapedTitle || parsed.hostname;
 
   const supabase = await createClient();
   const { error } = await supabase.from("meal_foods").insert({
     schedule_id: scheduleId,
     url: parsed.toString(),
-    title: manualTitle || scrapedTitle || parsed.hostname,
+    title: finalTitle,
     amount: manualAmount || null,
     image_url: manualImageUrl || scrapedImageUrl,
   });
   if (error) return { ok: false, error: error.message };
+
+  const { data: schedule } = await supabase
+    .from("feeding_schedules")
+    .select("label")
+    .eq("id", scheduleId)
+    .maybeSingle();
+  await logChangeEvent(
+    supabase,
+    petId,
+    "food",
+    `Added food "${finalTitle}" to "${schedule?.label ?? "meal"}"${manualAmount ? ` (${manualAmount})` : ""}`
+  );
 
   revalidatePath(`/pets/${petId}/logging/food`);
   return { ok: true };
@@ -81,6 +95,12 @@ export async function updateMealFood(
   }
 
   const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("meal_foods")
+    .select("title, amount, schedule_id, feeding_schedules(label)")
+    .eq("id", foodId)
+    .maybeSingle();
+
   const { error } = await supabase
     .from("meal_foods")
     .update({
@@ -92,12 +112,53 @@ export async function updateMealFood(
     .eq("id", foodId);
   if (error) return { ok: false, error: error.message };
 
+  if (existing) {
+    const mealLabel =
+      (existing.feeding_schedules as unknown as { label: string } | null)
+        ?.label ?? "meal";
+    if (existing.title !== title) {
+      await logChangeEvent(
+        supabase,
+        petId,
+        "food",
+        `Renamed food "${existing.title ?? "food"}" to "${title}" in "${mealLabel}"`
+      );
+    }
+    if (existing.amount !== amount) {
+      await logChangeEvent(
+        supabase,
+        petId,
+        "food",
+        `Changed amount for "${title || existing.title || "food"}" in "${mealLabel}" from "${existing.amount ?? "none"}" to "${amount || "none"}"`
+      );
+    }
+  }
+
   revalidatePath(`/pets/${petId}/logging/food`);
   return { ok: true };
 }
 
 export async function removeMealFood(petId: string, foodId: string) {
   const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("meal_foods")
+    .select("title, feeding_schedules(label)")
+    .eq("id", foodId)
+    .maybeSingle();
+
   await supabase.from("meal_foods").delete().eq("id", foodId);
+
+  if (existing) {
+    const mealLabel =
+      (existing.feeding_schedules as unknown as { label: string } | null)
+        ?.label ?? "meal";
+    await logChangeEvent(
+      supabase,
+      petId,
+      "food",
+      `Removed food "${existing.title ?? "food"}" from "${mealLabel}"`
+    );
+  }
+
   revalidatePath(`/pets/${petId}/logging/food`);
 }
