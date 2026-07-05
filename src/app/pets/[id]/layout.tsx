@@ -4,6 +4,7 @@ import { formatAge } from "@/lib/dates";
 import { BackLink } from "./back-link";
 import { BottomNav } from "./bottom-nav";
 import { PetHeaderPhoto } from "./pet-header-photo";
+import { PetSwitcher } from "./pet-switcher";
 
 export default async function PetLayout({
   children,
@@ -26,10 +27,19 @@ export default async function PetLayout({
     notFound();
   }
 
+  const { data: householdPets } = await supabase
+    .from("pets")
+    .select("id, name")
+    .eq("household_id", pet.household_id)
+    .order("created_at", { ascending: true });
+
   return (
     <div className="mx-auto flex min-h-screen max-w-2xl flex-col px-6 pb-20 pt-6">
       <div className="mb-4">
-        <BackLink petId={id} householdId={pet.household_id} />
+        <div className="flex items-center justify-between">
+          <BackLink petId={id} householdId={pet.household_id} />
+          <PetSwitcher petId={id} pets={householdPets ?? []} />
+        </div>
         <div className="mt-2 flex items-center gap-3">
           <PetHeaderPhoto
             petId={id}
