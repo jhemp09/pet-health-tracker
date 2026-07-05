@@ -63,20 +63,22 @@ export function MealRow({
   }
 
   return (
-    <div className="relative flex flex-col gap-2 rounded border border-gray-200 p-3">
-      {linkedMedicationHref && (
-        <Link
-          href={linkedMedicationHref}
-          title="Linked medication"
-          aria-label="Go to linked medication"
-          className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-xs shadow"
-        >
-          💊
-        </Link>
-      )}
+    <div className="flex flex-col gap-2 rounded border border-gray-200 p-3">
       <div className="flex flex-wrap items-end gap-2">
         <div className="mr-auto min-w-[7rem]">
-          <p className="text-sm font-medium">{label}</p>
+          <p className="flex items-center gap-1.5 text-sm font-medium">
+            {label}
+            {linkedMedicationHref && (
+              <Link
+                href={linkedMedicationHref}
+                title="Linked medication"
+                aria-label="Go to linked medication"
+                className="flex h-5 w-5 items-center justify-center rounded-full border border-gray-200 bg-white text-xs"
+              >
+                💊
+              </Link>
+            )}
+          </p>
           {timeLabel && <p className="text-xs text-gray-500">{timeLabel}</p>}
           {!timeLabel && <p className="text-xs text-gray-500">Extra feeding</p>}
         </div>

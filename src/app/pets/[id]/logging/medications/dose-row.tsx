@@ -8,7 +8,6 @@ import { MedicationDetails } from "./medication-details";
 
 type LogInfo = { id: string; given: boolean; notes: string | null };
 type Details = {
-  dosage: string | null;
   notes: string | null;
   product_url: string | null;
 };
@@ -90,20 +89,22 @@ export function DoseRow({
   );
 
   return (
-    <div className="relative flex flex-col gap-2 rounded border border-gray-200 p-3">
-      {linkedMealHref && (
-        <Link
-          href={linkedMealHref}
-          title="Linked meal"
-          aria-label="Go to linked meal"
-          className="absolute -left-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-xs shadow"
-        >
-          🍽️
-        </Link>
-      )}
+    <div className="flex flex-col gap-2 rounded border border-gray-200 p-3">
       <div className="flex flex-wrap items-end gap-2">
         <div className="mr-auto min-w-[7rem]">
-          <p className="text-sm font-medium">{label}</p>
+          <p className="flex items-center gap-1.5 text-sm font-medium">
+            {label}
+            {linkedMealHref && (
+              <Link
+                href={linkedMealHref}
+                title="Linked meal"
+                aria-label="Go to linked meal"
+                className="flex h-5 w-5 items-center justify-center rounded-full border border-gray-200 bg-white text-xs"
+              >
+                🍽️
+              </Link>
+            )}
+          </p>
           {timeLabel && <p className="text-xs text-gray-500">{timeLabel}</p>}
           {!timeLabel && <p className="text-xs text-gray-500">Extra dose</p>}
         </div>

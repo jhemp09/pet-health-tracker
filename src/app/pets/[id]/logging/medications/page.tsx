@@ -121,46 +121,36 @@ export default async function MedicationsPage({
 
       {dueScheduleTimes.length > 0 ? (
         <div className="flex flex-col gap-2">
-          {(() => {
-            const shownDetailsFor = new Set<string>();
-            return dueScheduleTimes.map((t) => {
-              const medication = medicationById.get(t.medication_id);
-              if (!medication) return null;
-              const log = logBySlot.get(t.id) ?? null;
-              const intervalHint =
-                medication.interval_days > 1
-                  ? ` · every ${medication.interval_days} days`
-                  : "";
-              const isFirstForMedication = !shownDetailsFor.has(medication.id);
-              shownDetailsFor.add(medication.id);
-              return (
-                <DoseRow
-                  key={`${t.id}-${selectedDate}`}
-                  petId={petId}
-                  dateStr={selectedDate}
-                  medicationId={medication.id}
-                  scheduleTimeId={t.id}
-                  label={`${medication.name}${medication.dosage ? ` (${medication.dosage})` : ""}`}
-                  timeLabel={`${formatTimeLabel(t.scheduled_time)}${intervalHint}`}
-                  log={log}
-                  details={
-                    isFirstForMedication
-                      ? {
-                          dosage: medication.dosage,
-                          notes: medication.notes,
-                          product_url: medication.product_url,
-                        }
-                      : null
-                  }
-                  linkedMealHref={
-                    t.linked_schedule_id
-                      ? `/pets/${petId}/logging/food?meal=${t.linked_schedule_id}`
-                      : null
-                  }
-                />
-              );
-            });
-          })()}
+          {dueScheduleTimes.map((t) => {
+            const medication = medicationById.get(t.medication_id);
+            if (!medication) return null;
+            const log = logBySlot.get(t.id) ?? null;
+            const intervalHint =
+              medication.interval_days > 1
+                ? ` · every ${medication.interval_days} days`
+                : "";
+            return (
+              <DoseRow
+                key={`${t.id}-${selectedDate}`}
+                petId={petId}
+                dateStr={selectedDate}
+                medicationId={medication.id}
+                scheduleTimeId={t.id}
+                label={`${medication.name}${medication.dosage ? ` (${medication.dosage})` : ""}`}
+                timeLabel={`${formatTimeLabel(t.scheduled_time)}${intervalHint}`}
+                log={log}
+                details={{
+                  notes: medication.notes,
+                  product_url: medication.product_url,
+                }}
+                linkedMealHref={
+                  t.linked_schedule_id
+                    ? `/pets/${petId}/logging/food?meal=${t.linked_schedule_id}`
+                    : null
+                }
+              />
+            );
+          })}
         </div>
       ) : medications && medications.length > 0 ? (
         <p className="text-sm text-gray-500">No doses due on this day.</p>
