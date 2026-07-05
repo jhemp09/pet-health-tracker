@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, requireUser } from "@/lib/supabase/server";
 import { FeedingSection } from "./feeding/feeding-section";
 import { MedicationsSection } from "./medications/medications-section";
 import { WeightSection } from "./health/weight-section";
@@ -14,12 +14,9 @@ export default async function PetPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const user = await requireUser();
   const { id } = await params;
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   const { data: pet } = await supabase
     .from("pets")
@@ -27,7 +24,7 @@ export default async function PetPage({
     .eq("id", id)
     .maybeSingle();
 
-  if (!pet || !user) {
+  if (!pet) {
     notFound();
   }
 

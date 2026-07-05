@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/supabase/server";
 import { createPet } from "./actions";
 
 export default async function NewPetPage({
@@ -7,6 +8,7 @@ export default async function NewPetPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ error?: string }>;
 }) {
+  await requireUser();
   const { id } = await params;
   const { error } = await searchParams;
   const createPetForHousehold = createPet.bind(null, id);

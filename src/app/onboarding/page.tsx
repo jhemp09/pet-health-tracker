@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/supabase/server";
 import { createHousehold, joinHousehold } from "./actions";
 import { TimezoneInput } from "./timezone-input";
 
@@ -6,6 +7,7 @@ export default async function OnboardingPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
+  await requireUser();
   const { error } = await searchParams;
 
   return (

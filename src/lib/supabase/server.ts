@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import type { Database } from "@/lib/supabase/types";
 
 export async function createClient() {
@@ -19,11 +20,29 @@ export async function createClient() {
               cookieStore.set(name, value, options);
             }
           } catch {
-            // setAll called from a Server Component; safe to ignore
-            // because middleware refreshes the session on every request.
+            // setAll called from a Server Component; safe to ignore since
+            // Server Actions and Route Handlers (which can set cookies)
+            // trigger the actual token refresh.
           }
         },
       },
     }
   );
+}
+
+// There's no middleware/proxy gating routes (see note in git history: Next.js
+// 16's Proxy file convention currently breaks routing on Vercel), so every
+// protected page must call this itself rather than relying on a central
+// redirect.
+export async function requireUser() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  return user;
 }

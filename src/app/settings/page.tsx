@@ -1,7 +1,10 @@
 import Link from "next/link";
+import { requireUser } from "@/lib/supabase/server";
 import { PushSubscribeButton } from "./push-subscribe-button";
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  await requireUser();
+
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col gap-6 px-6 py-16">
       <Link href="/" className="text-sm text-gray-500 underline">

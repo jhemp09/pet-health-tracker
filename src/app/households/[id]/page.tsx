@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, requireUser } from "@/lib/supabase/server";
 import { InviteButton } from "./invite-button";
 
 export default async function HouseholdPage({
@@ -8,6 +8,7 @@ export default async function HouseholdPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  await requireUser();
   const { id } = await params;
   const supabase = await createClient();
 
