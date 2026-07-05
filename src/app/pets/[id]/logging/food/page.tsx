@@ -60,6 +60,23 @@ export default async function FeedingPage({
         .maybeSingle(),
     ]);
 
+  const scheduleIdList = (schedules ?? []).map((s) => s.id);
+  const { data: mealFoods } =
+    scheduleIdList.length > 0
+      ? await supabase
+          .from("meal_foods")
+          .select("id, schedule_id, url, title, image_url")
+          .in("schedule_id", scheduleIdList)
+          .order("created_at", { ascending: true })
+      : { data: [] };
+
+  const foodsByScheduleId = new Map<string, typeof mealFoods>();
+  for (const food of mealFoods ?? []) {
+    const list = foodsByScheduleId.get(food.schedule_id) ?? [];
+    list.push(food);
+    foodsByScheduleId.set(food.schedule_id, list);
+  }
+
   const todaysLogs = (logsInRange ?? []).filter(
     (log) => localDateStr(timezone, new Date(log.fed_at)) === selectedDate
   );
@@ -101,6 +118,7 @@ export default async function FeedingPage({
               label={s.label}
               timeLabel={s.scheduled_time.slice(0, 5)}
               log={logByScheduleId.get(s.id) ?? null}
+              foods={foodsByScheduleId.get(s.id) ?? []}
             />
           ))}
         </div>

@@ -131,6 +131,28 @@ export interface Database {
         };
         Relationships: [];
       };
+      meal_foods: {
+        Row: {
+          id: string;
+          schedule_id: string;
+          url: string;
+          title: string | null;
+          image_url: string | null;
+          created_at: string;
+        };
+        Insert: {
+          schedule_id: string;
+          url: string;
+          title?: string | null;
+          image_url?: string | null;
+        };
+        Update: {
+          url?: string;
+          title?: string | null;
+          image_url?: string | null;
+        };
+        Relationships: [];
+      };
       medications: {
         Row: {
           id: string;
