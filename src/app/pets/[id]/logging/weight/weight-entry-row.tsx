@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useDebouncedCallback } from "@/lib/use-debounced-callback";
 import { deleteWeightLog, updateWeightLog } from "./actions";
 
 type LogEntry = {
@@ -23,6 +24,22 @@ export function WeightEntryRow({
   const [unit, setUnit] = useState(log.unit);
   const [notes, setNotes] = useState(log.notes ?? "");
   const [isPending, startTransition] = useTransition();
+  const [saved, setSaved] = useState(false);
+
+  function triggerSave(nextWeight: string, nextUnit: string, nextNotes: string) {
+    if (nextWeight === "" || Number(nextWeight) <= 0) return;
+    setSaved(false);
+    const formData = new FormData();
+    formData.set("weight", nextWeight);
+    formData.set("unit", nextUnit);
+    formData.set("notes", nextNotes);
+    startTransition(async () => {
+      await updateWeightLog(petId, log.id, formData);
+      setSaved(true);
+    });
+  }
+
+  const debouncedSave = useDebouncedCallback(triggerSave, 700);
 
   if (editing) {
     return (
@@ -34,7 +51,10 @@ export function WeightEntryRow({
             step={0.1}
             min={0}
             value={weight}
-            onChange={(e) => setWeight(e.target.value)}
+            onChange={(e) => {
+              setWeight(e.target.value);
+              debouncedSave(e.target.value, unit, notes);
+            }}
             className="w-24 rounded border border-gray-300 px-2 py-1 text-sm"
           />
         </label>
@@ -42,7 +62,10 @@ export function WeightEntryRow({
           Unit
           <select
             value={unit}
-            onChange={(e) => setUnit(e.target.value)}
+            onChange={(e) => {
+              setUnit(e.target.value);
+              triggerSave(weight, e.target.value, notes);
+            }}
             className="rounded border border-gray-300 px-2 py-1 text-sm"
           >
             <option value="lb">lb</option>
@@ -54,34 +77,24 @@ export function WeightEntryRow({
           <input
             type="text"
             value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            onChange={(e) => {
+              setNotes(e.target.value);
+              debouncedSave(weight, unit, e.target.value);
+            }}
             className="rounded border border-gray-300 px-2 py-1 text-sm"
           />
         </label>
         <button
           type="button"
-          disabled={isPending}
-          onClick={() => {
-            const formData = new FormData();
-            formData.set("weight", weight);
-            formData.set("unit", unit);
-            formData.set("notes", notes);
-            startTransition(async () => {
-              await updateWeightLog(petId, log.id, formData);
-              setEditing(false);
-            });
-          }}
-          className="rounded bg-black px-3 py-1.5 text-sm text-white disabled:opacity-50"
-        >
-          Save
-        </button>
-        <button
-          type="button"
           onClick={() => setEditing(false)}
           className="text-xs text-gray-500 underline"
         >
-          Cancel
+          Done
         </button>
+        {isPending && <span className="text-xs text-gray-400">Saving…</span>}
+        {saved && !isPending && (
+          <span className="text-xs text-green-700">Saved</span>
+        )}
       </li>
     );
   }

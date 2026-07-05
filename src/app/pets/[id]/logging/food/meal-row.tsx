@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useDebouncedCallback } from "@/lib/use-debounced-callback";
 import { deleteFeedingLog, saveFeedingForDate } from "./actions";
 
 type LogInfo = { id: string; percent_eaten: number; notes: string | null };
@@ -25,16 +26,19 @@ export function MealRow({
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
 
-  function handleSave() {
+  function triggerSave(nextPercent: string, nextNotes: string) {
+    if (nextPercent === "") return;
     setSaved(false);
     const formData = new FormData();
-    formData.set("percent_eaten", percent);
-    formData.set("notes", notes);
+    formData.set("percent_eaten", nextPercent);
+    formData.set("notes", nextNotes);
     startTransition(async () => {
       await saveFeedingForDate(petId, scheduleId, dateStr, log?.id ?? null, formData);
       setSaved(true);
     });
   }
+
+  const debouncedSave = useDebouncedCallback(triggerSave, 700);
 
   function handleClear() {
     if (!log) return;
@@ -60,7 +64,10 @@ export function MealRow({
           max={100}
           step={5}
           value={percent}
-          onChange={(e) => setPercent(e.target.value)}
+          onChange={(e) => {
+            setPercent(e.target.value);
+            debouncedSave(e.target.value, notes);
+          }}
           placeholder="—"
           className="w-20 rounded border border-gray-300 px-2 py-1 text-sm"
         />
@@ -70,18 +77,13 @@ export function MealRow({
         <input
           type="text"
           value={notes}
-          onChange={(e) => setNotes(e.target.value)}
+          onChange={(e) => {
+            setNotes(e.target.value);
+            debouncedSave(percent, e.target.value);
+          }}
           className="rounded border border-gray-300 px-2 py-1 text-sm"
         />
       </label>
-      <button
-        type="button"
-        disabled={isPending || percent === ""}
-        onClick={handleSave}
-        className="rounded bg-black px-3 py-1.5 text-sm text-white disabled:opacity-50"
-      >
-        Save
-      </button>
       {log && (
         <button
           type="button"
@@ -92,6 +94,7 @@ export function MealRow({
           Clear
         </button>
       )}
+      {isPending && <span className="text-xs text-gray-400">Saving…</span>}
       {saved && !isPending && (
         <span className="text-xs text-green-700">Saved</span>
       )}

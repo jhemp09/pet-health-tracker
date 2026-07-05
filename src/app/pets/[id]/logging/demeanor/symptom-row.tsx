@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import type { SymptomDef } from "@/lib/symptoms";
+import { useDebouncedCallback } from "@/lib/use-debounced-callback";
 import { deleteObservation, saveObservation } from "./actions";
 
 type Observation = {
@@ -31,16 +32,19 @@ export function SymptomRow({
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
 
-  function handleSave() {
+  function triggerSave(nextValue: string, nextNotes: string) {
+    if (nextValue === "") return;
     setSaved(false);
     const formData = new FormData();
-    formData.set("value", value);
-    formData.set("notes", notes);
+    formData.set("value", nextValue);
+    formData.set("notes", nextNotes);
     startTransition(async () => {
       await saveObservation(petId, def.key, dateStr, formData);
       setSaved(true);
     });
   }
+
+  const debouncedSave = useDebouncedCallback(triggerSave, 700);
 
   function handleClear() {
     if (!observation) return;
@@ -63,7 +67,10 @@ export function SymptomRow({
             min={0}
             step={1}
             value={value}
-            onChange={(e) => setValue(e.target.value)}
+            onChange={(e) => {
+              setValue(e.target.value);
+              debouncedSave(e.target.value, notes);
+            }}
             className="w-20 rounded border border-gray-300 px-2 py-1 text-sm"
           />
         </label>
@@ -74,7 +81,10 @@ export function SymptomRow({
           Rating (1-10)
           <select
             value={value}
-            onChange={(e) => setValue(e.target.value)}
+            onChange={(e) => {
+              setValue(e.target.value);
+              triggerSave(e.target.value, notes);
+            }}
             className="rounded border border-gray-300 px-2 py-1 text-sm"
           >
             <option value="">—</option>
@@ -92,7 +102,10 @@ export function SymptomRow({
           Value
           <select
             value={value}
-            onChange={(e) => setValue(e.target.value)}
+            onChange={(e) => {
+              setValue(e.target.value);
+              triggerSave(e.target.value, notes);
+            }}
             className="rounded border border-gray-300 px-2 py-1 text-sm"
           >
             <option value="">—</option>
@@ -110,18 +123,13 @@ export function SymptomRow({
         <input
           type="text"
           value={notes}
-          onChange={(e) => setNotes(e.target.value)}
+          onChange={(e) => {
+            setNotes(e.target.value);
+            debouncedSave(value, e.target.value);
+          }}
           className="rounded border border-gray-300 px-2 py-1 text-sm"
         />
       </label>
-      <button
-        type="button"
-        disabled={isPending || value === ""}
-        onClick={handleSave}
-        className="rounded bg-black px-3 py-1.5 text-sm text-white disabled:opacity-50"
-      >
-        Save
-      </button>
       {observation && (
         <button
           type="button"
@@ -132,6 +140,7 @@ export function SymptomRow({
           Clear
         </button>
       )}
+      {isPending && <span className="text-xs text-gray-400">Saving…</span>}
       {saved && !isPending && (
         <span className="text-xs text-green-700">Saved</span>
       )}

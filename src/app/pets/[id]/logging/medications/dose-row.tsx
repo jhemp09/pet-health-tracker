@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useDebouncedCallback } from "@/lib/use-debounced-callback";
 import { deleteMedicationLog, saveMedicationForDate } from "./actions";
 
 type LogInfo = { id: string; given: boolean; notes: string | null };
@@ -55,6 +56,28 @@ export function DoseRow({
     });
   }
 
+  const debouncedNotesSave = useDebouncedCallback(
+    (nextNotes: string) => {
+      if (given === null) return;
+      setSaved(false);
+      const formData = new FormData();
+      formData.set("given", String(given));
+      formData.set("notes", nextNotes);
+      startTransition(async () => {
+        await saveMedicationForDate(
+          petId,
+          medicationId,
+          scheduleTimeId,
+          dateStr,
+          log?.id ?? null,
+          formData
+        );
+        setSaved(true);
+      });
+    },
+    700
+  );
+
   return (
     <div className="flex flex-wrap items-end gap-2 rounded border border-gray-200 p-3">
       <div className="mr-auto min-w-[7rem]">
@@ -89,7 +112,10 @@ export function DoseRow({
         <input
           type="text"
           value={notes}
-          onChange={(e) => setNotes(e.target.value)}
+          onChange={(e) => {
+            setNotes(e.target.value);
+            debouncedNotesSave(e.target.value);
+          }}
           className="rounded border border-gray-300 px-2 py-1 text-sm"
         />
       </label>
@@ -103,6 +129,7 @@ export function DoseRow({
           Clear
         </button>
       )}
+      {isPending && <span className="text-xs text-gray-400">Saving…</span>}
       {saved && !isPending && (
         <span className="text-xs text-green-700">Saved</span>
       )}

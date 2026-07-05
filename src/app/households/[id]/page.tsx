@@ -29,7 +29,7 @@ export default async function HouseholdPage({
       .eq("household_id", id),
     supabase
       .from("pets")
-      .select("id, name, species, breed")
+      .select("id, name, species, breed, photo_url")
       .eq("household_id", id)
       .order("created_at", { ascending: true }),
   ]);
@@ -51,13 +51,25 @@ export default async function HouseholdPage({
               <li key={pet.id}>
                 <Link
                   href={`/pets/${pet.id}`}
-                  className="block rounded border border-gray-200 px-4 py-3 hover:bg-gray-50"
+                  className="flex items-center gap-3 rounded border border-gray-200 px-4 py-3 hover:bg-gray-50"
                 >
-                  <span className="font-medium">{pet.name}</span>
-                  <span className="ml-2 text-sm text-gray-500">
-                    {pet.species}
-                    {pet.breed ? ` · ${pet.breed}` : ""}
-                  </span>
+                  {pet.photo_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={pet.photo_url}
+                      alt=""
+                      className="h-10 w-10 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-10 w-10 rounded-full bg-gray-100" />
+                  )}
+                  <div>
+                    <span className="font-medium">{pet.name}</span>
+                    <span className="ml-2 text-sm text-gray-500">
+                      {pet.species}
+                      {pet.breed ? ` · ${pet.breed}` : ""}
+                    </span>
+                  </div>
                 </Link>
               </li>
             ))}
