@@ -167,6 +167,7 @@ export interface Database {
           start_date: string | null;
           end_date: string | null;
           notes: string | null;
+          product_url: string | null;
           created_at: string;
         };
         Insert: {
@@ -178,6 +179,7 @@ export interface Database {
           start_date?: string | null;
           end_date?: string | null;
           notes?: string | null;
+          product_url?: string | null;
         };
         Update: {
           name?: string;
@@ -187,6 +189,7 @@ export interface Database {
           start_date?: string | null;
           end_date?: string | null;
           notes?: string | null;
+          product_url?: string | null;
         };
         Relationships: [];
       };
