@@ -94,7 +94,7 @@ export default async function FeedingPage({
         <div className="flex flex-col gap-2">
           {schedules.map((s) => (
             <MealRow
-              key={s.id}
+              key={`${s.id}-${selectedDate}`}
               petId={petId}
               dateStr={selectedDate}
               scheduleId={s.id}

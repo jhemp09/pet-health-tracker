@@ -78,7 +78,7 @@ export default async function DemeanorPage({
             if (!def) return null;
             return (
               <SymptomRow
-                key={s.id}
+                key={`${s.id}-${selectedDate}`}
                 petId={petId}
                 dateStr={selectedDate}
                 def={def}

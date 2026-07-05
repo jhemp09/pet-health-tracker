@@ -100,7 +100,7 @@ export default async function MedicationsPage({
             const log = logBySlot.get(t.id) ?? null;
             return (
               <DoseRow
-                key={t.id}
+                key={`${t.id}-${selectedDate}`}
                 petId={petId}
                 dateStr={selectedDate}
                 medicationId={medication.id}
