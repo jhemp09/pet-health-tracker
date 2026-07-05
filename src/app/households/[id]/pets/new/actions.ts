@@ -37,7 +37,7 @@ export async function createPet(householdId: string, formData: FormData) {
   }
 
   if (photo instanceof File && photo.size > 0) {
-    const photoUrl = await uploadPetPhoto(supabase, householdId, data.id, photo);
+    const { url: photoUrl } = await uploadPetPhoto(supabase, householdId, data.id, photo);
     if (photoUrl) {
       await supabase.from("pets").update({ photo_url: photoUrl }).eq("id", data.id);
     }

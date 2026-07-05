@@ -1,5 +1,6 @@
 import { requireUser } from "@/lib/supabase/server";
 import { createPet } from "./actions";
+import { PhotoField } from "./photo-field";
 
 export default async function NewPetPage({
   params,
@@ -59,15 +60,7 @@ export default async function NewPetPage({
             className="rounded border border-gray-300 px-3 py-2"
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
-          Photo (optional)
-          <input
-            type="file"
-            name="photo"
-            accept="image/*"
-            className="text-sm"
-          />
-        </label>
+        <PhotoField />
         <button
           type="submit"
           className="rounded bg-black px-3 py-2 text-white"
