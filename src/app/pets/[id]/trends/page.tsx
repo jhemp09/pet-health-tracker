@@ -12,6 +12,7 @@ export default async function TrendsPage({
 
   const [
     { data: feedingLogs },
+    { data: feedingSchedules },
     { data: weightLogs },
     { data: vomitingObservations },
     { data: changeLogEntries },
@@ -21,7 +22,8 @@ export default async function TrendsPage({
       .select("id, fed_at, percent_eaten, notes, schedule_id")
       .eq("pet_id", petId)
       .order("fed_at", { ascending: false })
-      .limit(60),
+      .limit(200),
+    supabase.from("feeding_schedules").select("id, label").eq("pet_id", petId),
     supabase
       .from("weight_logs")
       .select("id, weight, unit, logged_at, notes")
@@ -44,10 +46,15 @@ export default async function TrendsPage({
       .limit(200),
   ]);
 
+  const mealLabels = Object.fromEntries(
+    (feedingSchedules ?? []).map((s) => [s.id, s.label])
+  );
+
   return (
     <div className="flex flex-col gap-6">
       <ChartsSection
         feedingLogs={feedingLogs ?? []}
+        mealLabels={mealLabels}
         weightLogs={weightLogs ?? []}
         vomitingObservations={vomitingObservations ?? []}
       />

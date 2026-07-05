@@ -13,33 +13,83 @@ import {
   YAxis,
 } from "recharts";
 
-type FeedingLog = { fed_at: string; percent_eaten: number };
+type FeedingLog = {
+  fed_at: string;
+  percent_eaten: number;
+  schedule_id: string | null;
+};
 type WeightLog = { logged_at: string; weight: number; unit: string };
 type VomitingObservation = { observed_date: string; value_numeric: number | null };
+type FeedingDayPoint = {
+  date: string;
+  percent: number;
+  meals: { label: string; percent: number }[];
+};
 
 function dayKey(iso: string) {
   return new Date(iso).toISOString().slice(0, 10);
 }
 
+function FoodTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: { payload: FeedingDayPoint }[];
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+  const data = payload[0].payload;
+  return (
+    <div className="rounded border border-gray-200 bg-white p-2 text-xs shadow">
+      <p className="mb-1 font-medium">
+        {data.date} — {data.percent}% avg
+      </p>
+      <ul className="flex flex-col gap-0.5 text-gray-600">
+        {data.meals.map((m, i) => (
+          <li key={i}>
+            {m.label}: {m.percent}%
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function ChartsSection({
   feedingLogs,
+  mealLabels,
   weightLogs,
   vomitingObservations,
 }: {
   feedingLogs: FeedingLog[];
+  mealLabels: Record<string, string>;
   weightLogs: WeightLog[];
   vomitingObservations: VomitingObservation[];
 }) {
-  const feedingData = useMemo(
-    () =>
-      [...feedingLogs]
-        .sort((a, b) => a.fed_at.localeCompare(b.fed_at))
-        .map((l) => ({
-          date: dayKey(l.fed_at),
-          percent: l.percent_eaten,
-        })),
-    [feedingLogs]
-  );
+  const feedingData = useMemo(() => {
+    const byDay = new Map<
+      string,
+      { total: number; count: number; meals: { label: string; percent: number }[] }
+    >();
+    for (const log of [...feedingLogs].sort((a, b) => a.fed_at.localeCompare(b.fed_at))) {
+      const date = dayKey(log.fed_at);
+      const entry = byDay.get(date) ?? { total: 0, count: 0, meals: [] };
+      entry.total += log.percent_eaten;
+      entry.count += 1;
+      entry.meals.push({
+        label: (log.schedule_id && mealLabels[log.schedule_id]) || "Extra feeding",
+        percent: log.percent_eaten,
+      });
+      byDay.set(date, entry);
+    }
+    return Array.from(byDay.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, { total, count, meals }]) => ({
+        date,
+        percent: Math.round(total / count),
+        meals,
+      }));
+  }, [feedingLogs, mealLabels]);
 
   const weightData = useMemo(
     () =>
@@ -81,7 +131,7 @@ export function ChartsSection({
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" tick={{ fontSize: 11 }} />
               <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
-              <Tooltip />
+              <Tooltip content={<FoodTooltip />} />
               <Line
                 type="monotone"
                 dataKey="percent"
