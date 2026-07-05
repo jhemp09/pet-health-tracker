@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient, requireUser } from "@/lib/supabase/server";
+import { BackLink } from "./back-link";
 import { BottomNav } from "./bottom-nav";
 
 export default async function PetLayout({
@@ -27,12 +27,7 @@ export default async function PetLayout({
   return (
     <div className="mx-auto flex min-h-screen max-w-2xl flex-col px-6 pb-20 pt-6">
       <div className="mb-4">
-        <Link
-          href={`/households/${pet.household_id}`}
-          className="text-sm text-gray-500 underline"
-        >
-          Back to household
-        </Link>
+        <BackLink petId={id} householdId={pet.household_id} />
         <h1 className="mt-1 text-xl font-semibold">{pet.name}</h1>
         <p className="text-sm text-gray-600">
           {pet.species}
