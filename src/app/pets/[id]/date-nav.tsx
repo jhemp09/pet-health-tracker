@@ -25,11 +25,11 @@ export function DateNav({
   }
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex min-w-0 items-center gap-1.5">
       <button
         type="button"
         onClick={() => goTo(shiftDate(selectedDate, -1))}
-        className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 text-sm hover:bg-gray-50"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 text-sm hover:bg-gray-50"
         aria-label="Previous day"
       >
         ←
@@ -39,13 +39,13 @@ export function DateNav({
         value={selectedDate}
         onChange={(e) => e.target.value && goTo(e.target.value)}
         max={todayDate}
-        className="rounded-full border border-gray-200 px-3 py-1.5 text-sm"
+        className="w-[8.5rem] min-w-0 rounded-full border border-gray-200 px-2 py-1.5 text-sm"
       />
       <button
         type="button"
         onClick={() => goTo(shiftDate(selectedDate, 1))}
         disabled={selectedDate >= todayDate}
-        className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 text-sm hover:bg-gray-50 disabled:opacity-40"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-gray-200 text-sm hover:bg-gray-50 disabled:opacity-40"
         aria-label="Next day"
       >
         →

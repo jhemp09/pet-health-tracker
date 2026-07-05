@@ -63,7 +63,10 @@ export function BottomNav({
   const items = buildItems(petId, householdId);
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-gray-200 bg-white pb-[env(safe-area-inset-bottom)]">
+    <nav
+      className="fixed inset-x-0 bottom-0 z-10 border-t border-gray-200 bg-white pb-[env(safe-area-inset-bottom)]"
+      style={{ transform: "translateZ(0)" }}
+    >
       <div className="mx-auto flex max-w-2xl">
         {items.map((item) => {
           const isActive = pathname?.startsWith(item.href);

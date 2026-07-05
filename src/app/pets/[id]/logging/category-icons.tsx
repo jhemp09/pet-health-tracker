@@ -56,15 +56,15 @@ export function CategoryHeader({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-3">
+    <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex min-w-0 items-center gap-3">
         <span
-          className="flex h-10 w-10 items-center justify-center rounded-full"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
           style={{ background: CATEGORY_BG[category], color: CATEGORY_COLOR[category] }}
         >
           <span className="h-5 w-5">{CATEGORY_ICON[category]}</span>
         </span>
-        <h2 className="font-heading text-lg font-semibold">{title}</h2>
+        <h2 className="font-heading truncate text-lg font-semibold">{title}</h2>
       </div>
       {children}
     </div>
