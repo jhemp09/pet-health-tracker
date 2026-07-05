@@ -1,4 +1,5 @@
 import { createHousehold, joinHousehold } from "./actions";
+import { TimezoneInput } from "./timezone-input";
 
 export default async function OnboardingPage({
   searchParams,
@@ -26,6 +27,7 @@ export default async function OnboardingPage({
       <section className="flex flex-col gap-3 rounded border border-gray-200 p-4">
         <h2 className="font-medium">Create a household</h2>
         <form action={createHousehold} className="flex flex-col gap-3">
+          <TimezoneInput />
           <input
             type="text"
             name="name"

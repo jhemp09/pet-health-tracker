@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 export async function createHousehold(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
   const displayName = String(formData.get("display_name") ?? "").trim() || null;
+  const timezone = String(formData.get("timezone") ?? "").trim() || "UTC";
 
   if (!name) {
     redirect(`/onboarding?error=${encodeURIComponent("Household name is required")}`);
@@ -15,6 +16,7 @@ export async function createHousehold(formData: FormData) {
   const { data, error } = await supabase.rpc("create_household", {
     household_name: name,
     member_display_name: displayName,
+    household_timezone: timezone,
   });
 
   if (error || !data) {

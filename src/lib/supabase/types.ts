@@ -9,10 +9,11 @@ export interface Database {
           id: string;
           name: string;
           created_by: string;
+          timezone: string;
           created_at: string;
         };
-        Insert: { name: string };
-        Update: { name?: string };
+        Insert: { name: string; timezone?: string };
+        Update: { name?: string; timezone?: string };
         Relationships: [];
       };
       household_members: {
@@ -324,7 +325,11 @@ export interface Database {
     Views: Record<string, never>;
     Functions: {
       create_household: {
-        Args: { household_name: string; member_display_name?: string | null };
+        Args: {
+          household_name: string;
+          member_display_name?: string | null;
+          household_timezone?: string;
+        };
         Returns: string;
       };
       create_household_invite: {

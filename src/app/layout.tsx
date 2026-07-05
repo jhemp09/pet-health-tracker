@@ -16,6 +16,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Pet Health Tracker",
   description: "Track feeding, medications, weight, and demeanor for your pets.",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
