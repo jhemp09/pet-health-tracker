@@ -26,7 +26,8 @@ export function ExtraDoseForm({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-sm underline"
+        className="rounded-full border border-dashed border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50"
+        style={{ color: "var(--color-meds)" }}
       >
         + Add extra dose
       </button>
@@ -34,7 +35,7 @@ export function ExtraDoseForm({
   }
 
   return (
-    <div className="flex flex-wrap items-end gap-2 rounded border border-dashed border-gray-300 p-3">
+    <div className="card flex flex-wrap items-end gap-2 border-dashed p-3">
       <label className="flex flex-col gap-1 text-xs">
         Medication
         <select
@@ -78,14 +79,15 @@ export function ExtraDoseForm({
             setNotes("");
           });
         }}
-        className="rounded bg-black px-3 py-1.5 text-sm text-white disabled:opacity-50"
+        className="btn-primary px-3 py-1.5 text-sm"
       >
         Add
       </button>
       <button
         type="button"
         onClick={() => setOpen(false)}
-        className="text-xs text-gray-500 underline"
+        className="text-xs underline"
+        style={{ color: "var(--color-muted)" }}
       >
         Cancel
       </button>

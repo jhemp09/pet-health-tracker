@@ -1,5 +1,6 @@
 import { createClient, requireUser } from "@/lib/supabase/server";
 import { ReminderToggle } from "../../notifications/reminder-toggle";
+import { CategoryHeader } from "../category-icons";
 import { logWeight } from "./actions";
 import { WeightEntryRow } from "./weight-entry-row";
 
@@ -29,11 +30,11 @@ export default async function WeightPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <h2 className="font-medium">Weight</h2>
+      <CategoryHeader category="weight" title="Weight" />
 
       <form
         action={logWeight.bind(null, petId)}
-        className="flex flex-wrap items-end gap-2 rounded border border-gray-200 p-3"
+        className="card flex flex-wrap items-end gap-2 p-3"
       >
         <label className="flex flex-col gap-1 text-xs">
           Weight
@@ -65,10 +66,7 @@ export default async function WeightPage({
             className="rounded border border-gray-300 px-2 py-1 text-sm"
           />
         </label>
-        <button
-          type="submit"
-          className="rounded bg-black px-3 py-1.5 text-sm text-white"
-        >
+        <button type="submit" className="btn-primary px-3 py-1.5 text-sm">
           Log weight
         </button>
       </form>
@@ -80,7 +78,9 @@ export default async function WeightPage({
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-gray-500">No weight logged yet.</p>
+        <p className="text-sm" style={{ color: "var(--color-muted)" }}>
+          No weight logged yet.
+        </p>
       )}
 
       <ReminderToggle

@@ -89,7 +89,7 @@ export function DoseRow({
   );
 
   return (
-    <div className="flex flex-col gap-2 rounded border border-gray-200 p-3">
+    <div className="card flex flex-col gap-2 p-3">
       <div className="flex flex-wrap items-end gap-2">
         <div className="mr-auto min-w-[7rem]">
           <p className="flex items-center gap-1.5 text-sm font-medium">
@@ -105,17 +105,24 @@ export function DoseRow({
               </Link>
             )}
           </p>
-          {timeLabel && <p className="text-xs text-gray-500">{timeLabel}</p>}
-          {!timeLabel && <p className="text-xs text-gray-500">Extra dose</p>}
+          {timeLabel && (
+            <p className="text-xs" style={{ color: "var(--color-meds)" }}>
+              {timeLabel}
+            </p>
+          )}
+          {!timeLabel && (
+            <p className="text-xs" style={{ color: "var(--color-muted)" }}>
+              Extra dose
+            </p>
+          )}
         </div>
-        <div className="flex gap-1">
+        <div className="flex gap-1.5">
           <button
             type="button"
             disabled={isPending}
             onClick={() => handleSave(true)}
-            className={`rounded px-3 py-1.5 text-sm text-white disabled:opacity-50 ${
-              given === true ? "bg-green-600" : "bg-gray-300"
-            }`}
+            className="rounded-full px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+            style={{ background: given === true ? "#16a34a" : "#d1d5db" }}
           >
             Given
           </button>
@@ -123,9 +130,8 @@ export function DoseRow({
             type="button"
             disabled={isPending}
             onClick={() => handleSave(false)}
-            className={`rounded px-3 py-1.5 text-sm text-white disabled:opacity-50 ${
-              given === false ? "bg-gray-600" : "bg-gray-300"
-            }`}
+            className="rounded-full px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+            style={{ background: given === false ? "#57534e" : "#d1d5db" }}
           >
             Not given
           </button>

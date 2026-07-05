@@ -56,8 +56,14 @@ export function SymptomRow({
   }
 
   return (
-    <div className="flex flex-wrap items-end gap-2 rounded border border-gray-200 p-3">
-      <p className="mr-auto min-w-[7rem] text-sm font-medium">{def.label}</p>
+    <div className="card flex flex-wrap items-end gap-2 p-3">
+      <p className="mr-auto flex min-w-[7rem] items-center gap-2 text-sm font-medium">
+        <span
+          className="h-2 w-2 rounded-full"
+          style={{ background: "var(--color-demeanor)" }}
+        />
+        {def.label}
+      </p>
 
       {def.scale.type === "count" && (
         <label className="flex flex-col gap-1 text-xs">

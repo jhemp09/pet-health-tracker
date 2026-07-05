@@ -2,68 +2,13 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatAge, localDateStr } from "@/lib/dates";
 import { PetProfileCard } from "./pet-profile-card";
+import { CATEGORY_BG, CATEGORY_COLOR, CATEGORY_ICON, type Category } from "./category-icons";
 
-const ITEMS = [
-  {
-    slug: "food",
-    label: "Food",
-    color: "var(--color-food)",
-    bg: "var(--color-food-light)",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-        <path
-          d="M6 3v7a3 3 0 0 0 3 3v8M6 3v6M9 3v6M6 9h3M15 3c-1.5 2-2 4-2 6a2 2 0 0 0 4 0V3M15 12v9"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    ),
-  },
-  {
-    slug: "medications",
-    label: "Medications",
-    color: "var(--color-meds)",
-    bg: "var(--color-meds-light)",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-        <rect
-          x="4"
-          y="8"
-          width="16"
-          height="10"
-          rx="5"
-          transform="rotate(-45 12 13)"
-        />
-        <path d="M9 16l6-6" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  {
-    slug: "demeanor",
-    label: "Demeanor",
-    color: "var(--color-demeanor)",
-    bg: "var(--color-demeanor-light)",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-        <circle cx="12" cy="13" r="7" />
-        <path d="M9 12v.01M15 12v.01M9.5 16c.8.7 1.7 1 2.5 1s1.7-.3 2.5-1" strokeLinecap="round" />
-        <path d="M8 6.5C7 5 6 4.5 5 5M16 6.5c1-1.5 2-2 3-1.5" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  {
-    slug: "weight",
-    label: "Weight",
-    color: "var(--color-weight)",
-    bg: "var(--color-weight-light)",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-        <circle cx="12" cy="13" r="8" />
-        <path d="M9 13a3 3 0 0 1 6 0" strokeLinecap="round" />
-        <path d="M12 5v1.5M12 3.5h0" strokeLinecap="round" />
-      </svg>
-    ),
-  },
+const ITEMS: { slug: Category; label: string }[] = [
+  { slug: "food", label: "Food" },
+  { slug: "medications", label: "Medications" },
+  { slug: "demeanor", label: "Demeanor" },
+  { slug: "weight", label: "Weight" },
 ];
 
 export default async function LoggingHubPage({
@@ -198,9 +143,9 @@ export default async function LoggingHubPage({
           >
             <span
               className="flex h-12 w-12 items-center justify-center rounded-full"
-              style={{ background: item.bg, color: item.color }}
+              style={{ background: CATEGORY_BG[item.slug], color: CATEGORY_COLOR[item.slug] }}
             >
-              <span className="h-6 w-6">{item.icon}</span>
+              <span className="h-6 w-6">{CATEGORY_ICON[item.slug]}</span>
             </span>
             <span className="font-heading font-medium">{item.label}</span>
           </Link>

@@ -20,11 +20,12 @@ export function SymptomSelector({
   const [isPending, startTransition] = useTransition();
 
   return (
-    <div className="rounded border border-gray-200 p-3">
+    <div className="card p-3">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         className="text-sm font-medium underline"
+        style={{ color: "var(--color-demeanor)" }}
       >
         {open ? "Hide symptom tracking editor" : "Edit tracked symptoms"}
       </button>
@@ -75,7 +76,7 @@ export function SymptomSelector({
                 onClick={() =>
                   startTransition(() => addSymptom(petId, selectedKey))
                 }
-                className="rounded bg-black px-3 py-1.5 text-sm text-white disabled:opacity-50"
+                className="btn-primary px-3 py-1.5 text-sm"
               >
                 + Add
               </button>

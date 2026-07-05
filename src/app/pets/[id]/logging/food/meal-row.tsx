@@ -63,7 +63,7 @@ export function MealRow({
   }
 
   return (
-    <div className="flex flex-col gap-2 rounded border border-gray-200 p-3">
+    <div className="card flex flex-col gap-2 p-3">
       <div className="flex flex-wrap items-end gap-2">
         <div className="mr-auto min-w-[7rem]">
           <p className="flex items-center gap-1.5 text-sm font-medium">
@@ -79,8 +79,16 @@ export function MealRow({
               </Link>
             )}
           </p>
-          {timeLabel && <p className="text-xs text-gray-500">{timeLabel}</p>}
-          {!timeLabel && <p className="text-xs text-gray-500">Extra feeding</p>}
+          {timeLabel && (
+            <p className="text-xs" style={{ color: "var(--color-food)" }}>
+              {timeLabel}
+            </p>
+          )}
+          {!timeLabel && (
+            <p className="text-xs" style={{ color: "var(--color-muted)" }}>
+              Extra feeding
+            </p>
+          )}
         </div>
         <label className="flex flex-col gap-1 text-xs">
           % eaten

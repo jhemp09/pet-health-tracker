@@ -92,11 +92,12 @@ export function ScheduleEditor({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="rounded border border-gray-200 p-3">
+    <div className="card p-3">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         className="text-sm font-medium underline"
+        style={{ color: "var(--color-food)" }}
       >
         {open ? "Hide meal schedule editor" : "Edit meal schedule"}
       </button>

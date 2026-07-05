@@ -2,6 +2,7 @@ import { createClient, requireUser } from "@/lib/supabase/server";
 import { formatTimeLabel, isDueOnInterval, localDateStr } from "@/lib/dates";
 import { ReminderToggle } from "../../notifications/reminder-toggle";
 import { DateNav } from "../../date-nav";
+import { CategoryHeader } from "../category-icons";
 import { DoseRow } from "./dose-row";
 import { ExtraDoseForm } from "./extra-dose-form";
 import { ScheduleEditor } from "./schedule-editor";
@@ -108,16 +109,16 @@ export default async function MedicationsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h2 className="font-medium">
-          {selectedDate === todayDate ? "Today's doses" : "Doses"}
-        </h2>
+      <CategoryHeader
+        category="medications"
+        title={selectedDate === todayDate ? "Today's doses" : "Doses"}
+      >
         <DateNav
           basePath={`/pets/${petId}/logging/medications`}
           selectedDate={selectedDate}
           todayDate={todayDate}
         />
-      </div>
+      </CategoryHeader>
 
       {dueScheduleTimes.length > 0 ? (
         <div className="flex flex-col gap-2">
@@ -153,9 +154,11 @@ export default async function MedicationsPage({
           })}
         </div>
       ) : medications && medications.length > 0 ? (
-        <p className="text-sm text-gray-500">No doses due on this day.</p>
+        <p className="text-sm" style={{ color: "var(--color-muted)" }}>
+          No doses due on this day.
+        </p>
       ) : (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm" style={{ color: "var(--color-muted)" }}>
           No medications configured yet — add one below.
         </p>
       )}

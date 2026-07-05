@@ -3,6 +3,7 @@ import { localDateStr } from "@/lib/dates";
 import { getSymptomDef } from "@/lib/symptoms";
 import { ReminderToggle } from "../../notifications/reminder-toggle";
 import { DateNav } from "../../date-nav";
+import { CategoryHeader } from "../category-icons";
 import { SymptomRow } from "./symptom-row";
 import { SymptomSelector } from "./symptom-selector";
 
@@ -60,16 +61,16 @@ export default async function DemeanorPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h2 className="font-medium">
-          {selectedDate === todayDate ? "Today's demeanor" : "Demeanor"}
-        </h2>
+      <CategoryHeader
+        category="demeanor"
+        title={selectedDate === todayDate ? "Today's demeanor" : "Demeanor"}
+      >
         <DateNav
           basePath={`/pets/${petId}/logging/demeanor`}
           selectedDate={selectedDate}
           todayDate={todayDate}
         />
-      </div>
+      </CategoryHeader>
 
       {activeSymptoms && activeSymptoms.length > 0 ? (
         <div className="flex flex-col gap-2">
@@ -88,7 +89,7 @@ export default async function DemeanorPage({
           })}
         </div>
       ) : (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm" style={{ color: "var(--color-muted)" }}>
           No symptoms being tracked yet — add one below.
         </p>
       )}

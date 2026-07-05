@@ -24,18 +24,20 @@ export function ReminderToggle({
   const [isPending, startTransition] = useTransition();
 
   return (
-    <label className="flex items-center gap-2 text-sm text-gray-600">
+    <label className="card flex items-center gap-2.5 px-3 py-2.5 text-sm">
       <input
         type="checkbox"
         checked={enabled}
         disabled={isPending}
+        style={{ accentColor: "var(--color-primary)" }}
+        className="h-4 w-4"
         onChange={(e) => {
           const next = e.target.checked;
           setEnabled(next);
           startTransition(() => setReminderPreference(petId, field, next));
         }}
       />
-      {label}
+      <span style={{ color: "var(--color-muted)" }}>{label}</span>
     </label>
   );
 }

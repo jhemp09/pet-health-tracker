@@ -2,6 +2,7 @@ import { createClient, requireUser } from "@/lib/supabase/server";
 import { formatTimeLabel, localDateStr } from "@/lib/dates";
 import { ReminderToggle } from "../../notifications/reminder-toggle";
 import { DateNav } from "../../date-nav";
+import { CategoryHeader } from "../category-icons";
 import { MealRow } from "./meal-row";
 import { ExtraFeedingForm } from "./extra-feeding-form";
 import { ScheduleEditor } from "./schedule-editor";
@@ -134,16 +135,16 @@ export default async function FeedingPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h2 className="font-medium">
-          {selectedDate === todayDate ? "Today's meals" : "Meals"}
-        </h2>
+      <CategoryHeader
+        category="food"
+        title={selectedDate === todayDate ? "Today's meals" : "Meals"}
+      >
         <DateNav
           basePath={`/pets/${petId}/logging/food`}
           selectedDate={selectedDate}
           todayDate={todayDate}
         />
-      </div>
+      </CategoryHeader>
 
       {orderedSchedules.length > 0 ? (
         <div className="flex flex-col gap-2">
@@ -166,7 +167,7 @@ export default async function FeedingPage({
           ))}
         </div>
       ) : (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm" style={{ color: "var(--color-muted)" }}>
           No meals configured yet — add one below.
         </p>
       )}

@@ -43,7 +43,7 @@ export function WeightEntryRow({
 
   if (editing) {
     return (
-      <li className="flex flex-wrap items-end gap-2 rounded border border-gray-200 p-2">
+      <li className="card flex flex-wrap items-end gap-2 p-2">
         <label className="flex flex-col gap-1 text-xs">
           Weight
           <input
@@ -100,16 +100,23 @@ export function WeightEntryRow({
   }
 
   return (
-    <li className="flex items-center justify-between text-sm text-gray-700">
+    <li className="card flex items-center justify-between px-3 py-2 text-sm">
       <span>
-        {new Date(log.logged_at).toLocaleString()} — {log.weight} {log.unit}
-        {log.notes ? ` — ${log.notes}` : ""}
+        <span className="font-semibold" style={{ color: "var(--color-weight)" }}>
+          {log.weight} {log.unit}
+        </span>
+        <span style={{ color: "var(--color-muted)" }}>
+          {" "}
+          · {new Date(log.logged_at).toLocaleString()}
+          {log.notes ? ` — ${log.notes}` : ""}
+        </span>
       </span>
       <span className="flex items-center gap-2">
         <button
           type="button"
           onClick={() => setEditing(true)}
-          className="text-xs text-blue-600 underline"
+          className="text-xs underline"
+          style={{ color: "var(--color-primary)" }}
         >
           Edit
         </button>
