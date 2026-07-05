@@ -116,8 +116,7 @@ function FoodChip({
           </span>
         )}
         <span className="max-w-[10rem] truncate">
-          {food.title ?? food.url}
-          {food.amount ? ` · ${food.amount}` : ""}
+          {food.amount ? `${food.amount} of ${food.title ?? food.url}` : (food.title ?? food.url)}
         </span>
       </a>
       <button
