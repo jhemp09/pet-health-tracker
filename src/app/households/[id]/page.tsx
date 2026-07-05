@@ -122,16 +122,9 @@ export default async function HouseholdPage({
             </li>
           ))}
         </ul>
-      </section>
-
-      <section
-        className="card flex flex-col gap-3 p-5"
-        style={{ background: "var(--color-accent-light)", borderColor: "var(--color-accent)" }}
-      >
-        <h2 className="font-heading text-lg font-semibold" style={{ color: "var(--color-accent)" }}>
-          Invite someone
-        </h2>
-        <InviteButton householdId={id} />
+        <div className="mt-4 border-t pt-4" style={{ borderColor: "var(--color-border)" }}>
+          <InviteButton householdId={id} />
+        </div>
       </section>
     </div>
   );
