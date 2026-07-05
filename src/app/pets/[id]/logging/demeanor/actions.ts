@@ -37,22 +37,15 @@ export async function saveObservation(
   if (!user) return;
 
   const notes = String(formData.get("notes") ?? "").trim() || null;
-  let valueNumeric: number | null = null;
-  let valueText: string | null = null;
 
-  if (def.scale.type === "enum") {
-    valueText = String(formData.get("value") ?? "").trim() || null;
-    if (!valueText) return;
-  } else {
-    const raw = formData.get("value");
-    if (raw === null || raw === "") return;
-    valueNumeric = Number(raw);
-    if (Number.isNaN(valueNumeric)) return;
-    if (def.scale.type === "rating_1_10" && (valueNumeric < 1 || valueNumeric > 10)) {
-      return;
-    }
-    if (def.scale.type === "count" && valueNumeric < 0) return;
+  const raw = formData.get("value");
+  if (raw === null || raw === "") return;
+  const valueNumeric = Number(raw);
+  if (Number.isNaN(valueNumeric)) return;
+  if (def.scale.type === "relative_5" && (valueNumeric < 1 || valueNumeric > 5)) {
+    return;
   }
+  if (def.scale.type === "count" && valueNumeric < 0) return;
 
   await supabase.from("demeanor_observations").upsert(
     {
@@ -60,7 +53,7 @@ export async function saveObservation(
       symptom_key: symptomKey,
       observed_date: dateStr,
       value_numeric: valueNumeric,
-      value_text: valueText,
+      value_text: null,
       notes,
       logged_by: user.id,
     },

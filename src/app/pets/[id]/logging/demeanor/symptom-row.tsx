@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import type { SymptomDef } from "@/lib/symptoms";
+import { RELATIVE_5_LABELS, type SymptomDef } from "@/lib/symptoms";
 import { useDebouncedCallback } from "@/lib/use-debounced-callback";
 import { deleteObservation, saveObservation } from "./actions";
 
@@ -23,10 +23,7 @@ export function SymptomRow({
   def: SymptomDef;
   observation: Observation | null;
 }) {
-  const initialValue =
-    def.scale.type === "enum"
-      ? observation?.value_text ?? ""
-      : (observation?.value_numeric?.toString() ?? "");
+  const initialValue = observation?.value_numeric?.toString() ?? "";
   const [value, setValue] = useState(initialValue);
   const [notes, setNotes] = useState(observation?.notes ?? "");
   const [isPending, startTransition] = useTransition();
@@ -82,9 +79,9 @@ export function SymptomRow({
         </label>
       )}
 
-      {def.scale.type === "rating_1_10" && (
+      {def.scale.type === "relative_5" && (
         <label className="flex flex-col gap-1 text-xs">
-          Rating (1-10)
+          Compared to normal
           <select
             value={value}
             onChange={(e) => {
@@ -94,30 +91,9 @@ export function SymptomRow({
             className="rounded border border-gray-300 px-2 py-1 text-sm"
           >
             <option value="">—</option>
-            {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
-
-      {def.scale.type === "enum" && (
-        <label className="flex flex-col gap-1 text-xs">
-          Value
-          <select
-            value={value}
-            onChange={(e) => {
-              setValue(e.target.value);
-              triggerSave(e.target.value, notes);
-            }}
-            className="rounded border border-gray-300 px-2 py-1 text-sm"
-          >
-            <option value="">—</option>
-            {def.scale.options.map((opt) => (
-              <option key={opt} value={opt}>
-                {opt}
+            {RELATIVE_5_LABELS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
               </option>
             ))}
           </select>

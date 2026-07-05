@@ -4,16 +4,24 @@
 // matching the "checklist that shows up every day" pattern used for
 // feeding schedules.
 
-export type SymptomScale =
-  | { type: "count"; unit: string }
-  | { type: "rating_1_10" }
-  | { type: "enum"; options: string[] };
+export type SymptomScale = { type: "count"; unit: string } | { type: "relative_5" };
 
 export type SymptomDef = {
   key: string;
   label: string;
   scale: SymptomScale;
 };
+
+// A 5-point scale relative to the pet's normal baseline. Stored as
+// value_numeric 1-5 for charting, but the UI only ever shows these labels
+// (never the raw number) since "3" on its own is meaningless to a user.
+export const RELATIVE_5_LABELS: { value: number; label: string }[] = [
+  { value: 1, label: "Much less than normal" },
+  { value: 2, label: "Less than normal" },
+  { value: 3, label: "Normal" },
+  { value: 4, label: "More than normal" },
+  { value: 5, label: "Much more than normal" },
+];
 
 export const SYMPTOM_CATALOG: SymptomDef[] = [
   {
@@ -22,27 +30,49 @@ export const SYMPTOM_CATALOG: SymptomDef[] = [
     scale: { type: "count", unit: "times" },
   },
   {
+    key: "urination_count",
+    label: "Urination",
+    scale: { type: "count", unit: "times" },
+  },
+  {
+    key: "defecation_count",
+    label: "Defecation",
+    scale: { type: "count", unit: "times" },
+  },
+  {
     key: "lethargy",
     label: "Lethargy",
-    scale: { type: "rating_1_10" },
+    scale: { type: "relative_5" },
   },
   {
     key: "panting",
     label: "Panting",
-    scale: { type: "rating_1_10" },
+    scale: { type: "relative_5" },
   },
   {
     key: "distancing",
-    label: "Distancing / hiding",
-    scale: { type: "rating_1_10" },
+    label: "Distancing/Hiding",
+    scale: { type: "relative_5" },
   },
   {
     key: "vocalizations",
     label: "Vocalizations",
-    scale: {
-      type: "enum",
-      options: ["Normal", "More than normal", "Less than normal"],
-    },
+    scale: { type: "relative_5" },
+  },
+  {
+    key: "willingness_to_walk",
+    label: "Willingness to Walk",
+    scale: { type: "relative_5" },
+  },
+  {
+    key: "limping",
+    label: "Limping",
+    scale: { type: "relative_5" },
+  },
+  {
+    key: "respiratory",
+    label: "Sneezing/Coughing/Congestion",
+    scale: { type: "relative_5" },
   },
 ];
 
