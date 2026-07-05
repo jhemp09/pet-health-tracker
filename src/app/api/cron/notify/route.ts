@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendPushToUsers } from "@/lib/notifications/send";
 import { daysSince, localDateStr } from "@/lib/notifications/schedule";
+import { getSymptomDef } from "@/lib/symptoms";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +48,8 @@ export async function GET(request: NextRequest) {
       { data: medications },
       { data: todaysMedLogs },
       { data: lastWeightLog },
-      { data: todaysDemeanorLogs },
+      { data: activeSymptoms },
+      { data: todaysDemeanorObs },
       { data: preferences },
     ] = await Promise.all([
       supabase
@@ -62,14 +64,14 @@ export async function GET(request: NextRequest) {
         .gte("fed_at", weekAgo),
       supabase
         .from("medications")
-        .select("id, name, schedule_times")
+        .select("id, name")
         .eq("pet_id", pet.id)
         .eq("active", true),
       supabase
         .from("medication_logs")
-        .select("medication_id, given_at")
+        .select("schedule_time_id, observed_date, given")
         .eq("pet_id", pet.id)
-        .gte("given_at", weekAgo),
+        .eq("observed_date", today),
       supabase
         .from("weight_logs")
         .select("logged_at")
@@ -78,10 +80,15 @@ export async function GET(request: NextRequest) {
         .limit(1)
         .maybeSingle(),
       supabase
-        .from("demeanor_logs")
-        .select("logged_at")
+        .from("pet_demeanor_symptoms")
+        .select("symptom_key")
         .eq("pet_id", pet.id)
-        .gte("logged_at", weekAgo),
+        .eq("active", true),
+      supabase
+        .from("demeanor_observations")
+        .select("symptom_key")
+        .eq("pet_id", pet.id)
+        .eq("observed_date", today),
       supabase
         .from("notification_preferences")
         .select(
@@ -101,25 +108,39 @@ export async function GET(request: NextRequest) {
       (s) => !loggedTodayBySchedule.has(s.id)
     );
 
-    const dosesLoggedTodayByMed = new Map<string, number>();
-    for (const log of todaysMedLogs ?? []) {
-      if (localDateStr(timezone, new Date(log.given_at)) !== today) continue;
-      dosesLoggedTodayByMed.set(
-        log.medication_id,
-        (dosesLoggedTodayByMed.get(log.medication_id) ?? 0) + 1
-      );
-    }
-    const pendingMeds = (medications ?? []).filter(
-      (m) => (dosesLoggedTodayByMed.get(m.id) ?? 0) < Math.max(m.schedule_times.length, 1)
+    // Needs `medications` to resolve first to know which ids to filter by,
+    // so this can't join the Promise.all above.
+    const medicationIds = (medications ?? []).map((m) => m.id);
+    const { data: allScheduleTimes } =
+      medicationIds.length > 0
+        ? await supabase
+            .from("medication_schedule_times")
+            .select("id, medication_id")
+            .in("medication_id", medicationIds)
+        : { data: [] as { id: string; medication_id: string }[] };
+
+    const loggedScheduleTimeIds = new Set(
+      (todaysMedLogs ?? [])
+        .filter((log) => log.given && log.schedule_time_id)
+        .map((log) => log.schedule_time_id)
+    );
+    const pendingMedNames = new Set(
+      (allScheduleTimes ?? [])
+        .filter((st) => !loggedScheduleTimeIds.has(st.id))
+        .map((st) => medications?.find((m) => m.id === st.medication_id)?.name)
+        .filter((name): name is string => Boolean(name))
     );
 
     const weightOverdue =
       !lastWeightLog ||
       daysSince(timezone, lastWeightLog.logged_at, now) >= WEIGH_IN_REMINDER_DAYS;
 
-    const demeanorLoggedToday = (todaysDemeanorLogs ?? []).some(
-      (log) => localDateStr(timezone, new Date(log.logged_at)) === today
+    const loggedSymptomKeys = new Set(
+      (todaysDemeanorObs ?? []).map((o) => o.symptom_key)
     );
+    const missingSymptoms = (activeSymptoms ?? [])
+      .filter((s) => !loggedSymptomKeys.has(s.symptom_key))
+      .map((s) => getSymptomDef(s.symptom_key)?.label ?? s.symptom_key);
 
     for (const pref of preferences) {
       if (pref.feeding_enabled && unloggedMeals.length > 0) {
@@ -128,17 +149,20 @@ export async function GET(request: NextRequest) {
           `${pet.name}: ${unloggedMeals.length} meal${unloggedMeals.length > 1 ? "s" : ""} not logged today (${unloggedMeals.map((s) => s.label).join(", ")})`
         );
       }
-      if (pref.medication_enabled && pendingMeds.length > 0) {
+      if (pref.medication_enabled && pendingMedNames.size > 0) {
         addLine(
           pref.user_id,
-          `${pet.name}: medication due (${pendingMeds.map((m) => m.name).join(", ")})`
+          `${pet.name}: medication due (${[...pendingMedNames].join(", ")})`
         );
       }
       if (pref.weight_enabled && weightOverdue) {
         addLine(pref.user_id, `${pet.name}: hasn't been weighed in over a week`);
       }
-      if (pref.demeanor_enabled && !demeanorLoggedToday) {
-        addLine(pref.user_id, `${pet.name}: no demeanor check-in today`);
+      if (pref.demeanor_enabled && missingSymptoms.length > 0) {
+        addLine(
+          pref.user_id,
+          `${pet.name}: demeanor check-in incomplete (${missingSymptoms.join(", ")})`
+        );
       }
     }
   }

@@ -1,6 +1,7 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, requireUser } from "@/lib/supabase/server";
 import { localDateStr } from "@/lib/dates";
-import { DateNav } from "./date-nav";
+import { ReminderToggle } from "../../notifications/reminder-toggle";
+import { DateNav } from "../../date-nav";
 import { MealRow } from "./meal-row";
 import { ExtraFeedingForm } from "./extra-feeding-form";
 import { ScheduleEditor } from "./schedule-editor";
@@ -14,6 +15,7 @@ export default async function FeedingPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ date?: string }>;
 }) {
+  const user = await requireUser();
   const { id: petId } = await params;
   const { date } = await searchParams;
   const supabase = await createClient();
@@ -35,21 +37,28 @@ export default async function FeedingPage({
   const rangeStart = new Date(base - dayMs).toISOString();
   const rangeEnd = new Date(base + 2 * dayMs).toISOString();
 
-  const [{ data: schedules }, { data: logsInRange }] = await Promise.all([
-    supabase
-      .from("feeding_schedules")
-      .select("id, label, scheduled_time")
-      .eq("pet_id", petId)
-      .eq("active", true)
-      .order("scheduled_time", { ascending: true }),
-    supabase
-      .from("feeding_logs")
-      .select("id, schedule_id, fed_at, percent_eaten, notes")
-      .eq("pet_id", petId)
-      .gte("fed_at", rangeStart)
-      .lt("fed_at", rangeEnd)
-      .order("fed_at", { ascending: false }),
-  ]);
+  const [{ data: schedules }, { data: logsInRange }, { data: preference }] =
+    await Promise.all([
+      supabase
+        .from("feeding_schedules")
+        .select("id, label, scheduled_time")
+        .eq("pet_id", petId)
+        .eq("active", true)
+        .order("scheduled_time", { ascending: true }),
+      supabase
+        .from("feeding_logs")
+        .select("id, schedule_id, fed_at, percent_eaten, notes")
+        .eq("pet_id", petId)
+        .gte("fed_at", rangeStart)
+        .lt("fed_at", rangeEnd)
+        .order("fed_at", { ascending: false }),
+      supabase
+        .from("notification_preferences")
+        .select("feeding_enabled")
+        .eq("pet_id", petId)
+        .eq("user_id", user.id)
+        .maybeSingle(),
+    ]);
 
   const todaysLogs = (logsInRange ?? []).filter(
     (log) => localDateStr(timezone, new Date(log.fed_at)) === selectedDate
@@ -74,7 +83,11 @@ export default async function FeedingPage({
         <h2 className="font-medium">
           {selectedDate === todayDate ? "Today's meals" : "Meals"}
         </h2>
-        <DateNav petId={petId} selectedDate={selectedDate} todayDate={todayDate} />
+        <DateNav
+          basePath={`/pets/${petId}/logging/food`}
+          selectedDate={selectedDate}
+          todayDate={todayDate}
+        />
       </div>
 
       {schedules && schedules.length > 0 ? (
@@ -112,6 +125,13 @@ export default async function FeedingPage({
       </div>
 
       <ScheduleEditor petId={petId} schedules={schedules ?? []} />
+
+      <ReminderToggle
+        petId={petId}
+        field="feeding_enabled"
+        label="Remind me about meals"
+        initialEnabled={preference?.feeding_enabled ?? false}
+      />
     </div>
   );
 }

@@ -137,7 +137,6 @@ export interface Database {
           pet_id: string;
           name: string;
           dosage: string | null;
-          schedule_times: string[];
           active: boolean;
           start_date: string | null;
           end_date: string | null;
@@ -148,7 +147,6 @@ export interface Database {
           pet_id: string;
           name: string;
           dosage?: string | null;
-          schedule_times?: string[];
           active?: boolean;
           start_date?: string | null;
           end_date?: string | null;
@@ -157,7 +155,6 @@ export interface Database {
         Update: {
           name?: string;
           dosage?: string | null;
-          schedule_times?: string[];
           active?: boolean;
           start_date?: string | null;
           end_date?: string | null;
@@ -165,29 +162,40 @@ export interface Database {
         };
         Relationships: [];
       };
-      medication_logs: {
+      medication_schedule_times: {
         Row: {
           id: string;
           medication_id: string;
+          scheduled_time: string;
+          created_at: string;
+        };
+        Insert: { medication_id: string; scheduled_time: string };
+        Update: { scheduled_time?: string };
+        Relationships: [];
+      };
+      medication_logs: {
+        Row: {
+          id: string;
           pet_id: string;
-          logged_by: string;
-          scheduled_for: string | null;
+          medication_id: string;
+          schedule_time_id: string | null;
+          observed_date: string;
           given: boolean;
-          given_at: string;
           notes: string | null;
+          logged_by: string;
+          created_at: string;
         };
         Insert: {
-          medication_id: string;
           pet_id: string;
-          logged_by: string;
-          scheduled_for?: string | null;
+          medication_id: string;
+          schedule_time_id?: string | null;
+          observed_date: string;
           given: boolean;
-          given_at?: string;
           notes?: string | null;
+          logged_by: string;
         };
         Update: {
           given?: boolean;
-          given_at?: string;
           notes?: string | null;
         };
         Relationships: [];
@@ -218,33 +226,42 @@ export interface Database {
         };
         Relationships: [];
       };
-      demeanor_logs: {
+      pet_demeanor_symptoms: {
         Row: {
           id: string;
           pet_id: string;
-          logged_by: string;
-          logged_at: string;
-          energy_level: number | null;
-          vomiting: boolean;
-          vomiting_count: number;
-          distancing: boolean;
+          symptom_key: string;
+          active: boolean;
+          created_at: string;
+        };
+        Insert: { pet_id: string; symptom_key: string; active?: boolean };
+        Update: { active?: boolean };
+        Relationships: [];
+      };
+      demeanor_observations: {
+        Row: {
+          id: string;
+          pet_id: string;
+          symptom_key: string;
+          observed_date: string;
+          value_numeric: number | null;
+          value_text: string | null;
           notes: string | null;
+          logged_by: string;
+          created_at: string;
         };
         Insert: {
           pet_id: string;
-          logged_by: string;
-          logged_at?: string;
-          energy_level?: number | null;
-          vomiting?: boolean;
-          vomiting_count?: number;
-          distancing?: boolean;
+          symptom_key: string;
+          observed_date: string;
+          value_numeric?: number | null;
+          value_text?: string | null;
           notes?: string | null;
+          logged_by: string;
         };
         Update: {
-          energy_level?: number | null;
-          vomiting?: boolean;
-          vomiting_count?: number;
-          distancing?: boolean;
+          value_numeric?: number | null;
+          value_text?: string | null;
           notes?: string | null;
         };
         Relationships: [];
@@ -350,6 +367,14 @@ export interface Database {
       };
       pet_household_id: {
         Args: { pid: string };
+        Returns: string;
+      };
+      medication_household_id: {
+        Args: { mid: string };
+        Returns: string;
+      };
+      schedule_time_household_id: {
+        Args: { stid: string };
         Returns: string;
       };
     };

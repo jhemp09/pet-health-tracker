@@ -9,7 +9,7 @@ export default async function TrendsPage({
   const { id: petId } = await params;
   const supabase = await createClient();
 
-  const [{ data: feedingLogs }, { data: weightLogs }, { data: demeanorLogs }] =
+  const [{ data: feedingLogs }, { data: weightLogs }, { data: vomitingObservations }] =
     await Promise.all([
       supabase
         .from("feeding_logs")
@@ -24,12 +24,11 @@ export default async function TrendsPage({
         .order("logged_at", { ascending: false })
         .limit(60),
       supabase
-        .from("demeanor_logs")
-        .select(
-          "id, logged_at, energy_level, vomiting, vomiting_count, distancing, notes"
-        )
+        .from("demeanor_observations")
+        .select("observed_date, value_numeric")
         .eq("pet_id", petId)
-        .order("logged_at", { ascending: false })
+        .eq("symptom_key", "vomiting_count")
+        .order("observed_date", { ascending: false })
         .limit(60),
     ]);
 
@@ -37,7 +36,7 @@ export default async function TrendsPage({
     <ChartsSection
       feedingLogs={feedingLogs ?? []}
       weightLogs={weightLogs ?? []}
-      demeanorLogs={demeanorLogs ?? []}
+      vomitingObservations={vomitingObservations ?? []}
     />
   );
 }

@@ -1,11 +1,21 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-export async function updateNotificationPreferences(
+type ReminderField =
+  | "feeding_enabled"
+  | "medication_enabled"
+  | "weight_enabled"
+  | "demeanor_enabled";
+
+// Updates a single reminder flag without disturbing the other three — an
+// upsert payload only sets the columns present in it, so omitted flags keep
+// their existing value (or fall back to the table's `default false` on a
+// brand-new row).
+export async function setReminderPreference(
   petId: string,
-  formData: FormData
+  field: ReminderField,
+  enabled: boolean
 ) {
   const supabase = await createClient();
   const {
@@ -13,17 +23,17 @@ export async function updateNotificationPreferences(
   } = await supabase.auth.getUser();
   if (!user) return;
 
-  await supabase.from("notification_preferences").upsert(
-    {
-      user_id: user.id,
-      pet_id: petId,
-      feeding_enabled: formData.get("feeding_enabled") === "on",
-      medication_enabled: formData.get("medication_enabled") === "on",
-      weight_enabled: formData.get("weight_enabled") === "on",
-      demeanor_enabled: formData.get("demeanor_enabled") === "on",
-    },
-    { onConflict: "user_id,pet_id" }
-  );
+  const payload: {
+    user_id: string;
+    pet_id: string;
+    feeding_enabled?: boolean;
+    medication_enabled?: boolean;
+    weight_enabled?: boolean;
+    demeanor_enabled?: boolean;
+  } = { user_id: user.id, pet_id: petId };
+  payload[field] = enabled;
 
-  revalidatePath(`/pets/${petId}`);
+  await supabase
+    .from("notification_preferences")
+    .upsert(payload, { onConflict: "user_id,pet_id" });
 }

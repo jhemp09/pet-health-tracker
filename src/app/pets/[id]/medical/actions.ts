@@ -46,7 +46,7 @@ export async function uploadBloodwork(petId: string, formData: FormData) {
     notes,
   });
 
-  revalidatePath(`/pets/${petId}`);
+  revalidatePath(`/pets/${petId}/medical`);
 }
 
 export async function deleteBloodworkFile(
@@ -57,7 +57,7 @@ export async function deleteBloodworkFile(
   const supabase = await createClient();
   await supabase.storage.from("bloodwork").remove([storagePath]);
   await supabase.from("bloodwork_files").delete().eq("id", fileId);
-  revalidatePath(`/pets/${petId}`);
+  revalidatePath(`/pets/${petId}/medical`);
 }
 
 export async function getBloodworkUrl(storagePath: string) {

@@ -15,11 +15,7 @@ import {
 
 type FeedingLog = { fed_at: string; percent_eaten: number };
 type WeightLog = { logged_at: string; weight: number; unit: string };
-type DemeanorLog = {
-  logged_at: string;
-  vomiting: boolean;
-  vomiting_count: number;
-};
+type VomitingObservation = { observed_date: string; value_numeric: number | null };
 
 function dayKey(iso: string) {
   return new Date(iso).toISOString().slice(0, 10);
@@ -28,11 +24,11 @@ function dayKey(iso: string) {
 export function ChartsSection({
   feedingLogs,
   weightLogs,
-  demeanorLogs,
+  vomitingObservations,
 }: {
   feedingLogs: FeedingLog[];
   weightLogs: WeightLog[];
-  demeanorLogs: DemeanorLog[];
+  vomitingObservations: VomitingObservation[];
 }) {
   const feedingData = useMemo(
     () =>
@@ -59,15 +55,17 @@ export function ChartsSection({
 
   const vomitingData = useMemo(() => {
     const byDay = new Map<string, number>();
-    for (const l of demeanorLogs) {
-      if (!l.vomiting) continue;
-      const key = dayKey(l.logged_at);
-      byDay.set(key, (byDay.get(key) ?? 0) + (l.vomiting_count || 1));
+    for (const o of vomitingObservations) {
+      if (!o.value_numeric) continue;
+      byDay.set(
+        o.observed_date,
+        (byDay.get(o.observed_date) ?? 0) + o.value_numeric
+      );
     }
     return Array.from(byDay.entries())
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, count]) => ({ date, count }));
-  }, [demeanorLogs]);
+  }, [vomitingObservations]);
 
   return (
     <section className="flex flex-col gap-8">

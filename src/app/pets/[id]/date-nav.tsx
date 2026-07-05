@@ -9,11 +9,11 @@ function shiftDate(dateStr: string, days: number) {
 }
 
 export function DateNav({
-  petId,
+  basePath,
   selectedDate,
   todayDate,
 }: {
-  petId: string;
+  basePath: string;
   selectedDate: string;
   todayDate: string;
 }) {
@@ -21,7 +21,7 @@ export function DateNav({
 
   function goTo(dateStr: string) {
     const suffix = dateStr === todayDate ? "" : `?date=${dateStr}`;
-    router.push(`/pets/${petId}/feeding${suffix}`);
+    router.push(`${basePath}${suffix}`);
   }
 
   return (

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient, requireUser } from "@/lib/supabase/server";
-import { TabNav } from "./tab-nav";
+import { BottomNav } from "./bottom-nav";
 
 export default async function PetLayout({
   children,
@@ -25,15 +25,15 @@ export default async function PetLayout({
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-2xl flex-col gap-6 px-6 py-10">
-      <div>
+    <div className="mx-auto flex min-h-screen max-w-2xl flex-col px-6 pb-20 pt-6">
+      <div className="mb-4">
         <Link
           href={`/households/${pet.household_id}`}
           className="text-sm text-gray-500 underline"
         >
           Back to household
         </Link>
-        <h1 className="mt-1 text-2xl font-semibold">{pet.name}</h1>
+        <h1 className="mt-1 text-xl font-semibold">{pet.name}</h1>
         <p className="text-sm text-gray-600">
           {pet.species}
           {pet.breed ? ` · ${pet.breed}` : ""}
@@ -41,9 +41,9 @@ export default async function PetLayout({
         </p>
       </div>
 
-      <TabNav petId={id} />
-
       {children}
+
+      <BottomNav petId={id} />
     </div>
   );
 }

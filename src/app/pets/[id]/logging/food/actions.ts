@@ -17,7 +17,7 @@ export async function addFeedingSchedule(petId: string, formData: FormData) {
     scheduled_time: scheduledTime,
   });
 
-  revalidatePath(`/pets/${petId}/feeding`);
+  revalidatePath(`/pets/${petId}/logging/food`);
 }
 
 export async function updateFeedingSchedule(
@@ -36,13 +36,13 @@ export async function updateFeedingSchedule(
     .update({ label, scheduled_time: scheduledTime })
     .eq("id", scheduleId);
 
-  revalidatePath(`/pets/${petId}/feeding`);
+  revalidatePath(`/pets/${petId}/logging/food`);
 }
 
 export async function removeFeedingSchedule(petId: string, scheduleId: string) {
   const supabase = await createClient();
   await supabase.from("feeding_schedules").delete().eq("id", scheduleId);
-  revalidatePath(`/pets/${petId}/feeding`);
+  revalidatePath(`/pets/${petId}/logging/food`);
 }
 
 // Saves (creates or updates) a single feeding entry for a specific
@@ -94,11 +94,11 @@ export async function saveFeedingForDate(
     });
   }
 
-  revalidatePath(`/pets/${petId}/feeding`);
+  revalidatePath(`/pets/${petId}/logging/food`);
 }
 
 export async function deleteFeedingLog(petId: string, logId: string) {
   const supabase = await createClient();
   await supabase.from("feeding_logs").delete().eq("id", logId);
-  revalidatePath(`/pets/${petId}/feeding`);
+  revalidatePath(`/pets/${petId}/logging/food`);
 }
