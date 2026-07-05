@@ -16,6 +16,7 @@ type Medication = {
   name: string;
   dosage: string | null;
   interval_days: number;
+  start_date: string | null;
   times: ScheduleTime[];
 };
 
@@ -92,15 +93,18 @@ function AddTimeForm({
 function MedicationRow({
   petId,
   medication,
+  todayDate,
 }: {
   petId: string;
   medication: Medication;
+  todayDate: string;
 }) {
   const [name, setName] = useState(medication.name);
   const [dosage, setDosage] = useState(medication.dosage ?? "");
   const [intervalDays, setIntervalDays] = useState(
     medication.interval_days.toString()
   );
+  const [startDate, setStartDate] = useState(medication.start_date ?? todayDate);
   const [isPending, startTransition] = useTransition();
 
   return (
@@ -135,6 +139,15 @@ function MedicationRow({
             className="w-16 rounded border border-gray-300 px-2 py-1 text-sm"
           />
         </label>
+        <label className="flex flex-col gap-1 text-xs">
+          Cycle start date
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="rounded border border-gray-300 px-2 py-1 text-sm"
+          />
+        </label>
         <button
           type="button"
           disabled={isPending}
@@ -143,6 +156,7 @@ function MedicationRow({
             formData.set("name", name);
             formData.set("dosage", dosage);
             formData.set("interval_days", intervalDays);
+            formData.set("start_date", startDate);
             startTransition(() =>
               updateMedication(petId, medication.id, formData)
             );
@@ -160,6 +174,10 @@ function MedicationRow({
           Delete medication
         </button>
       </div>
+      <p className="pl-2 text-xs text-gray-500">
+        Changing the cycle start date only affects which future days this
+        shows up as due — past entries are kept as-is.
+      </p>
       <div className="flex flex-col gap-1 pl-2">
         {medication.times.map((t) => (
           <TimeRow key={t.id} petId={petId} time={t} />
@@ -173,9 +191,11 @@ function MedicationRow({
 export function ScheduleEditor({
   petId,
   medications,
+  todayDate,
 }: {
   petId: string;
   medications: Medication[];
+  todayDate: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -191,7 +211,12 @@ export function ScheduleEditor({
       {open && (
         <div className="mt-3 flex flex-col gap-3">
           {medications.map((m) => (
-            <MedicationRow key={m.id} petId={petId} medication={m} />
+            <MedicationRow
+              key={m.id}
+              petId={petId}
+              medication={m}
+              todayDate={todayDate}
+            />
           ))}
           <form
             action={addMedication.bind(null, petId)}
@@ -233,6 +258,16 @@ export function ScheduleEditor({
                 step={1}
                 defaultValue={1}
                 className="w-16 rounded border border-gray-300 px-2 py-1 text-sm"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs">
+              Cycle start date
+              <input
+                type="date"
+                name="start_date"
+                defaultValue={todayDate}
+                required
+                className="rounded border border-gray-300 px-2 py-1 text-sm"
               />
             </label>
             <button

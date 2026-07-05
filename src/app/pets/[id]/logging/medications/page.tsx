@@ -154,6 +154,7 @@ export default async function MedicationsPage({
 
       <ScheduleEditor
         petId={petId}
+        todayDate={todayDate}
         medications={(medications ?? []).map((m) => ({
           ...m,
           times: (scheduleTimes ?? []).filter((t) => t.medication_id === m.id),

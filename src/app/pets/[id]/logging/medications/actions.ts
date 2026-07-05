@@ -26,16 +26,24 @@ export async function addMedication(petId: string, formData: FormData) {
   const dosage = String(formData.get("dosage") ?? "").trim() || null;
   const scheduledTime = String(formData.get("scheduled_time") ?? "");
   const intervalDays = Math.max(1, Number(formData.get("interval_days")) || 1);
+  let startDate = String(formData.get("start_date") ?? "").trim();
 
   if (!name || !scheduledTime) return;
 
   const supabase = await createClient();
-  const timezone = await getPetTimezone(supabase, petId);
-  const startDate = localDateStr(timezone, new Date());
+  if (!startDate) {
+    startDate = localDateStr(await getPetTimezone(supabase, petId), new Date());
+  }
 
   const { data: medication } = await supabase
     .from("medications")
-    .insert({ pet_id: petId, name, dosage, interval_days: intervalDays, start_date: startDate })
+    .insert({
+      pet_id: petId,
+      name,
+      dosage,
+      interval_days: intervalDays,
+      start_date: startDate,
+    })
     .select("id")
     .single();
 
@@ -48,6 +56,10 @@ export async function addMedication(petId: string, formData: FormData) {
   revalidatePath(`/pets/${petId}${BASE_PATH_SUFFIX}`);
 }
 
+// Updates a medication's details, including its interval-cycle anchor date.
+// Changing `start_date` only affects which future days the dose is
+// considered "due" on — it never touches previously logged doses, so
+// history from before the cycle was reset stays exactly as entered.
 export async function updateMedication(
   petId: string,
   medicationId: string,
@@ -56,30 +68,17 @@ export async function updateMedication(
   const name = String(formData.get("name") ?? "").trim();
   const dosage = String(formData.get("dosage") ?? "").trim() || null;
   const intervalDays = Math.max(1, Number(formData.get("interval_days")) || 1);
+  const startDate = String(formData.get("start_date") ?? "").trim() || null;
   if (!name) return;
 
   const supabase = await createClient();
-
-  const { data: existing } = await supabase
-    .from("medications")
-    .select("interval_days")
-    .eq("id", medicationId)
-    .maybeSingle();
-
-  // Changing the interval restarts the count from today, so "every 3 days"
-  // means "every 3 days starting now" rather than reusing a stale anchor.
-  const intervalChanged = existing && existing.interval_days !== intervalDays;
-  const startDate = intervalChanged
-    ? localDateStr(await getPetTimezone(supabase, petId), new Date())
-    : undefined;
-
   await supabase
     .from("medications")
     .update({
       name,
       dosage,
       interval_days: intervalDays,
-      ...(startDate ? { start_date: startDate } : {}),
+      start_date: startDate,
     })
     .eq("id", medicationId);
 
