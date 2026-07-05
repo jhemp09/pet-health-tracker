@@ -85,15 +85,24 @@ export default async function FeedingPage({
     foodsByScheduleId.set(food.schedule_id, list);
   }
 
-  const { data: linkedMedications } = await supabase
+  const { data: medicationsForPet } = await supabase
     .from("medications")
-    .select("id, linked_schedule_id")
+    .select("id")
     .eq("pet_id", petId)
-    .not("linked_schedule_id", "is", null);
+    .eq("active", true);
+  const medicationIdList = (medicationsForPet ?? []).map((m) => m.id);
+  const { data: linkedTimes } =
+    medicationIdList.length > 0
+      ? await supabase
+          .from("medication_schedule_times")
+          .select("medication_id, linked_schedule_id")
+          .in("medication_id", medicationIdList)
+          .not("linked_schedule_id", "is", null)
+      : { data: [] };
   const linkedMedicationByScheduleId = new Map<string, string>();
-  for (const med of linkedMedications ?? []) {
-    if (med.linked_schedule_id && !linkedMedicationByScheduleId.has(med.linked_schedule_id)) {
-      linkedMedicationByScheduleId.set(med.linked_schedule_id, med.id);
+  for (const time of linkedTimes ?? []) {
+    if (time.linked_schedule_id && !linkedMedicationByScheduleId.has(time.linked_schedule_id)) {
+      linkedMedicationByScheduleId.set(time.linked_schedule_id, time.medication_id);
     }
   }
 

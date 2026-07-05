@@ -37,9 +37,7 @@ export default async function MedicationsPage({
     await Promise.all([
       supabase
         .from("medications")
-        .select(
-          "id, name, dosage, interval_days, start_date, notes, product_url, linked_schedule_id"
-        )
+        .select("id, name, dosage, interval_days, start_date, notes, product_url")
         .eq("pet_id", petId)
         .eq("active", true)
         .order("created_at", { ascending: true }),
@@ -63,10 +61,17 @@ export default async function MedicationsPage({
     medicationIds.length > 0
       ? supabase
           .from("medication_schedule_times")
-          .select("id, medication_id, scheduled_time")
+          .select("id, medication_id, scheduled_time, linked_schedule_id")
           .in("medication_id", medicationIds)
           .order("scheduled_time", { ascending: true })
-      : Promise.resolve({ data: [] as { id: string; medication_id: string; scheduled_time: string }[] }),
+      : Promise.resolve({
+          data: [] as {
+            id: string;
+            medication_id: string;
+            scheduled_time: string;
+            linked_schedule_id: string | null;
+          }[],
+        }),
     supabase
       .from("medication_logs")
       .select("id, medication_id, schedule_time_id, given, notes")
@@ -148,8 +153,8 @@ export default async function MedicationsPage({
                       : null
                   }
                   linkedMealHref={
-                    isFirstForMedication && medication.linked_schedule_id
-                      ? `/pets/${petId}/logging/food?meal=${medication.linked_schedule_id}`
+                    t.linked_schedule_id
+                      ? `/pets/${petId}/logging/food?meal=${t.linked_schedule_id}`
                       : null
                   }
                 />

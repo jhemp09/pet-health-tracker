@@ -168,7 +168,6 @@ export interface Database {
           end_date: string | null;
           notes: string | null;
           product_url: string | null;
-          linked_schedule_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -181,7 +180,6 @@ export interface Database {
           end_date?: string | null;
           notes?: string | null;
           product_url?: string | null;
-          linked_schedule_id?: string | null;
         };
         Update: {
           name?: string;
@@ -192,7 +190,6 @@ export interface Database {
           end_date?: string | null;
           notes?: string | null;
           product_url?: string | null;
-          linked_schedule_id?: string | null;
         };
         Relationships: [];
       };
@@ -201,10 +198,18 @@ export interface Database {
           id: string;
           medication_id: string;
           scheduled_time: string;
+          linked_schedule_id: string | null;
           created_at: string;
         };
-        Insert: { medication_id: string; scheduled_time: string };
-        Update: { scheduled_time?: string };
+        Insert: {
+          medication_id: string;
+          scheduled_time: string;
+          linked_schedule_id?: string | null;
+        };
+        Update: {
+          scheduled_time?: string;
+          linked_schedule_id?: string | null;
+        };
         Relationships: [];
       };
       medication_logs: {

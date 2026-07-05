@@ -10,7 +10,11 @@ import {
   updateScheduleTime,
 } from "./actions";
 
-type ScheduleTime = { id: string; scheduled_time: string };
+type ScheduleTime = {
+  id: string;
+  scheduled_time: string;
+  linked_schedule_id: string | null;
+};
 type FeedingSchedule = { id: string; label: string };
 type Medication = {
   id: string;
@@ -18,36 +22,78 @@ type Medication = {
   dosage: string | null;
   notes: string | null;
   product_url: string | null;
-  linked_schedule_id: string | null;
   interval_days: number;
   start_date: string | null;
   times: ScheduleTime[];
 };
 
+function LinkedMealSelect({
+  name,
+  defaultValue,
+  feedingSchedules,
+}: {
+  name: string;
+  defaultValue: string;
+  feedingSchedules: FeedingSchedule[];
+}) {
+  return (
+    <select
+      name={name}
+      defaultValue={defaultValue}
+      className="rounded border border-gray-300 px-2 py-1 text-sm"
+    >
+      <option value="">No linked meal</option>
+      {feedingSchedules.map((s) => (
+        <option key={s.id} value={s.id}>
+          {s.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
 function TimeRow({
   petId,
   time,
+  feedingSchedules,
 }: {
   petId: string;
   time: ScheduleTime;
+  feedingSchedules: FeedingSchedule[];
 }) {
   const [value, setValue] = useState(time.scheduled_time.slice(0, 5));
+  const [linkedScheduleId, setLinkedScheduleId] = useState(
+    time.linked_schedule_id ?? ""
+  );
   const [isPending, startTransition] = useTransition();
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <input
         type="time"
         value={value}
         onChange={(e) => setValue(e.target.value)}
         className="rounded border border-gray-300 px-2 py-1 text-sm"
       />
+      <select
+        value={linkedScheduleId}
+        onChange={(e) => setLinkedScheduleId(e.target.value)}
+        className="rounded border border-gray-300 px-2 py-1 text-sm"
+      >
+        <option value="">No linked meal</option>
+        {feedingSchedules.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.label}
+          </option>
+        ))}
+      </select>
       <button
         type="button"
         disabled={isPending}
         onClick={() => {
           const formData = new FormData();
           formData.set("scheduled_time", value);
+          formData.set("linked_schedule_id", linkedScheduleId);
           startTransition(() => updateScheduleTime(petId, time.id, formData));
         }}
         className="rounded bg-black px-2 py-1 text-xs text-white disabled:opacity-50"
@@ -69,20 +115,27 @@ function TimeRow({
 function AddTimeForm({
   petId,
   medicationId,
+  feedingSchedules,
 }: {
   petId: string;
   medicationId: string;
+  feedingSchedules: FeedingSchedule[];
 }) {
   return (
     <form
       action={addScheduleTime.bind(null, petId, medicationId)}
-      className="flex items-center gap-2"
+      className="flex flex-wrap items-center gap-2"
     >
       <input
         type="time"
         name="scheduled_time"
         required
         className="rounded border border-gray-300 px-2 py-1 text-sm"
+      />
+      <LinkedMealSelect
+        name="linked_schedule_id"
+        defaultValue=""
+        feedingSchedules={feedingSchedules}
       />
       <button
         type="submit"
@@ -109,9 +162,6 @@ function MedicationRow({
   const [dosage, setDosage] = useState(medication.dosage ?? "");
   const [notes, setNotes] = useState(medication.notes ?? "");
   const [productUrl, setProductUrl] = useState(medication.product_url ?? "");
-  const [linkedScheduleId, setLinkedScheduleId] = useState(
-    medication.linked_schedule_id ?? ""
-  );
   const [intervalDays, setIntervalDays] = useState(
     medication.interval_days.toString()
   );
@@ -181,21 +231,6 @@ function MedicationRow({
             className="rounded border border-gray-300 px-2 py-1 text-sm"
           />
         </label>
-        <label className="flex flex-col gap-1 text-xs">
-          Linked meal
-          <select
-            value={linkedScheduleId}
-            onChange={(e) => setLinkedScheduleId(e.target.value)}
-            className="rounded border border-gray-300 px-2 py-1 text-sm"
-          >
-            <option value="">None</option>
-            {feedingSchedules.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-        </label>
       </div>
       <div className="flex gap-2">
         <button
@@ -207,7 +242,6 @@ function MedicationRow({
             formData.set("dosage", dosage);
             formData.set("notes", notes);
             formData.set("product_url", productUrl);
-            formData.set("linked_schedule_id", linkedScheduleId);
             formData.set("interval_days", intervalDays);
             formData.set("start_date", startDate);
             startTransition(() =>
@@ -229,13 +263,24 @@ function MedicationRow({
       </div>
       <p className="pl-2 text-xs text-gray-500">
         Changing the cycle start date only affects which future days this
-        shows up as due — past entries are kept as-is.
+        shows up as due — past entries are kept as-is. Each time below can
+        link to a different meal (e.g. an AM dose with breakfast, a PM dose
+        with dinner).
       </p>
       <div className="flex flex-col gap-1 pl-2">
         {medication.times.map((t) => (
-          <TimeRow key={t.id} petId={petId} time={t} />
+          <TimeRow
+            key={t.id}
+            petId={petId}
+            time={t}
+            feedingSchedules={feedingSchedules}
+          />
         ))}
-        <AddTimeForm petId={petId} medicationId={medication.id} />
+        <AddTimeForm
+          petId={petId}
+          medicationId={medication.id}
+          feedingSchedules={feedingSchedules}
+        />
       </div>
     </div>
   );
@@ -307,6 +352,14 @@ export function ScheduleEditor({
                 />
               </label>
               <label className="flex flex-col gap-1 text-xs">
+                Linked meal
+                <LinkedMealSelect
+                  name="linked_schedule_id"
+                  defaultValue=""
+                  feedingSchedules={feedingSchedules}
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs">
                 Every ___ day(s)
                 <input
                   type="number"
@@ -346,21 +399,6 @@ export function ScheduleEditor({
                   placeholder="https://…"
                   className="rounded border border-gray-300 px-2 py-1 text-sm"
                 />
-              </label>
-              <label className="flex flex-col gap-1 text-xs">
-                Linked meal
-                <select
-                  name="linked_schedule_id"
-                  defaultValue=""
-                  className="rounded border border-gray-300 px-2 py-1 text-sm"
-                >
-                  <option value="">None</option>
-                  {feedingSchedules.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
               </label>
             </div>
             <button

@@ -47,7 +47,6 @@ export async function addMedication(petId: string, formData: FormData) {
       dosage,
       notes,
       product_url: productUrl,
-      linked_schedule_id: linkedScheduleId,
       interval_days: intervalDays,
       start_date: startDate,
     })
@@ -55,9 +54,11 @@ export async function addMedication(petId: string, formData: FormData) {
     .single();
 
   if (medication) {
-    await supabase
-      .from("medication_schedule_times")
-      .insert({ medication_id: medication.id, scheduled_time: scheduledTime });
+    await supabase.from("medication_schedule_times").insert({
+      medication_id: medication.id,
+      scheduled_time: scheduledTime,
+      linked_schedule_id: linkedScheduleId,
+    });
   }
 
   revalidatePath(`/pets/${petId}${BASE_PATH_SUFFIX}`);
@@ -76,8 +77,6 @@ export async function updateMedication(
   const dosage = String(formData.get("dosage") ?? "").trim() || null;
   const notes = String(formData.get("notes") ?? "").trim() || null;
   const productUrl = String(formData.get("product_url") ?? "").trim() || null;
-  const linkedScheduleId =
-    String(formData.get("linked_schedule_id") ?? "").trim() || null;
   const intervalDays = Math.max(1, Number(formData.get("interval_days")) || 1);
   const startDate = String(formData.get("start_date") ?? "").trim() || null;
   if (!name) return;
@@ -90,7 +89,6 @@ export async function updateMedication(
       dosage,
       notes,
       product_url: productUrl,
-      linked_schedule_id: linkedScheduleId,
       interval_days: intervalDays,
       start_date: startDate,
     })
@@ -112,11 +110,15 @@ export async function addScheduleTime(
 ) {
   const scheduledTime = String(formData.get("scheduled_time") ?? "");
   if (!scheduledTime) return;
+  const linkedScheduleId =
+    String(formData.get("linked_schedule_id") ?? "").trim() || null;
 
   const supabase = await createClient();
-  await supabase
-    .from("medication_schedule_times")
-    .insert({ medication_id: medicationId, scheduled_time: scheduledTime });
+  await supabase.from("medication_schedule_times").insert({
+    medication_id: medicationId,
+    scheduled_time: scheduledTime,
+    linked_schedule_id: linkedScheduleId,
+  });
 
   revalidatePath(`/pets/${petId}${BASE_PATH_SUFFIX}`);
 }
@@ -128,11 +130,13 @@ export async function updateScheduleTime(
 ) {
   const scheduledTime = String(formData.get("scheduled_time") ?? "");
   if (!scheduledTime) return;
+  const linkedScheduleId =
+    String(formData.get("linked_schedule_id") ?? "").trim() || null;
 
   const supabase = await createClient();
   await supabase
     .from("medication_schedule_times")
-    .update({ scheduled_time: scheduledTime })
+    .update({ scheduled_time: scheduledTime, linked_schedule_id: linkedScheduleId })
     .eq("id", scheduleTimeId);
 
   revalidatePath(`/pets/${petId}${BASE_PATH_SUFFIX}`);
