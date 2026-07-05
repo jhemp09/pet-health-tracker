@@ -46,30 +46,26 @@ export default async function HouseholdPage({
       <section>
         <h2 className="mb-2 font-medium">Pets</h2>
         {pets && pets.length > 0 ? (
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-wrap gap-6">
             {pets.map((pet) => (
               <li key={pet.id}>
                 <Link
                   href={`/pets/${pet.id}`}
-                  className="flex items-center gap-3 rounded border border-gray-200 px-4 py-3 hover:bg-gray-50"
+                  className="flex w-28 flex-col items-center gap-2 text-center"
                 >
                   {pet.photo_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={pet.photo_url}
                       alt=""
-                      className="h-10 w-10 rounded-full object-cover"
+                      className="h-28 w-28 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="h-10 w-10 rounded-full bg-gray-100" />
+                    <div className="flex h-28 w-28 items-center justify-center rounded-full bg-gray-100 text-sm text-gray-400">
+                      {pet.name.charAt(0).toUpperCase()}
+                    </div>
                   )}
-                  <div>
-                    <span className="font-medium">{pet.name}</span>
-                    <span className="ml-2 text-sm text-gray-500">
-                      {pet.species}
-                      {pet.breed ? ` · ${pet.breed}` : ""}
-                    </span>
-                  </div>
+                  <span className="font-medium">{pet.name}</span>
                 </Link>
               </li>
             ))}
