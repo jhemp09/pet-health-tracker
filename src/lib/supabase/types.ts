@@ -138,6 +138,7 @@ export interface Database {
           name: string;
           dosage: string | null;
           active: boolean;
+          interval_days: number;
           start_date: string | null;
           end_date: string | null;
           notes: string | null;
@@ -148,6 +149,7 @@ export interface Database {
           name: string;
           dosage?: string | null;
           active?: boolean;
+          interval_days?: number;
           start_date?: string | null;
           end_date?: string | null;
           notes?: string | null;
@@ -156,6 +158,7 @@ export interface Database {
           name?: string;
           dosage?: string | null;
           active?: boolean;
+          interval_days?: number;
           start_date?: string | null;
           end_date?: string | null;
           notes?: string | null;

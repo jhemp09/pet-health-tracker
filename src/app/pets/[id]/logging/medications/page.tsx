@@ -1,5 +1,5 @@
 import { createClient, requireUser } from "@/lib/supabase/server";
-import { localDateStr } from "@/lib/dates";
+import { isDueOnInterval, localDateStr } from "@/lib/dates";
 import { ReminderToggle } from "../../notifications/reminder-toggle";
 import { DateNav } from "../../date-nav";
 import { DoseRow } from "./dose-row";
@@ -36,7 +36,7 @@ export default async function MedicationsPage({
   const [{ data: medications }, { data: preference }] = await Promise.all([
     supabase
       .from("medications")
-      .select("id, name, dosage")
+      .select("id, name, dosage, interval_days, start_date")
       .eq("pet_id", petId)
       .eq("active", true)
       .order("created_at", { ascending: true }),
@@ -79,6 +79,12 @@ export default async function MedicationsPage({
 
   const medicationById = new Map((medications ?? []).map((m) => [m.id, m]));
 
+  const dueScheduleTimes = (scheduleTimes ?? []).filter((t) => {
+    const medication = medicationById.get(t.medication_id);
+    if (!medication) return false;
+    return isDueOnInterval(medication.start_date, selectedDate, medication.interval_days);
+  });
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
@@ -92,12 +98,16 @@ export default async function MedicationsPage({
         />
       </div>
 
-      {scheduleTimes && scheduleTimes.length > 0 ? (
+      {dueScheduleTimes.length > 0 ? (
         <div className="flex flex-col gap-2">
-          {scheduleTimes.map((t) => {
+          {dueScheduleTimes.map((t) => {
             const medication = medicationById.get(t.medication_id);
             if (!medication) return null;
             const log = logBySlot.get(t.id) ?? null;
+            const intervalHint =
+              medication.interval_days > 1
+                ? ` · every ${medication.interval_days} days`
+                : "";
             return (
               <DoseRow
                 key={`${t.id}-${selectedDate}`}
@@ -106,12 +116,14 @@ export default async function MedicationsPage({
                 medicationId={medication.id}
                 scheduleTimeId={t.id}
                 label={`${medication.name}${medication.dosage ? ` (${medication.dosage})` : ""}`}
-                timeLabel={t.scheduled_time.slice(0, 5)}
+                timeLabel={`${t.scheduled_time.slice(0, 5)}${intervalHint}`}
                 log={log}
               />
             );
           })}
         </div>
+      ) : medications && medications.length > 0 ? (
+        <p className="text-sm text-gray-500">No doses due on this day.</p>
       ) : (
         <p className="text-sm text-gray-500">
           No medications configured yet — add one below.

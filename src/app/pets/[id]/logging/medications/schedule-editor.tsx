@@ -15,6 +15,7 @@ type Medication = {
   id: string;
   name: string;
   dosage: string | null;
+  interval_days: number;
   times: ScheduleTime[];
 };
 
@@ -97,6 +98,9 @@ function MedicationRow({
 }) {
   const [name, setName] = useState(medication.name);
   const [dosage, setDosage] = useState(medication.dosage ?? "");
+  const [intervalDays, setIntervalDays] = useState(
+    medication.interval_days.toString()
+  );
   const [isPending, startTransition] = useTransition();
 
   return (
@@ -120,6 +124,17 @@ function MedicationRow({
             className="rounded border border-gray-300 px-2 py-1 text-sm"
           />
         </label>
+        <label className="flex flex-col gap-1 text-xs">
+          Every ___ day(s)
+          <input
+            type="number"
+            min={1}
+            step={1}
+            value={intervalDays}
+            onChange={(e) => setIntervalDays(e.target.value)}
+            className="w-16 rounded border border-gray-300 px-2 py-1 text-sm"
+          />
+        </label>
         <button
           type="button"
           disabled={isPending}
@@ -127,6 +142,7 @@ function MedicationRow({
             const formData = new FormData();
             formData.set("name", name);
             formData.set("dosage", dosage);
+            formData.set("interval_days", intervalDays);
             startTransition(() =>
               updateMedication(petId, medication.id, formData)
             );
@@ -206,6 +222,17 @@ export function ScheduleEditor({
                 name="scheduled_time"
                 required
                 className="rounded border border-gray-300 px-2 py-1 text-sm"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs">
+              Every ___ day(s)
+              <input
+                type="number"
+                name="interval_days"
+                min={1}
+                step={1}
+                defaultValue={1}
+                className="w-16 rounded border border-gray-300 px-2 py-1 text-sm"
               />
             </label>
             <button

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { sendPushToUsers } from "@/lib/notifications/send";
 import { daysSince, localDateStr } from "@/lib/notifications/schedule";
+import { isDueOnInterval } from "@/lib/dates";
 import { getSymptomDef } from "@/lib/symptoms";
 
 export const dynamic = "force-dynamic";
@@ -64,7 +65,7 @@ export async function GET(request: NextRequest) {
         .gte("fed_at", weekAgo),
       supabase
         .from("medications")
-        .select("id, name")
+        .select("id, name, interval_days, start_date")
         .eq("pet_id", pet.id)
         .eq("active", true),
       supabase
@@ -124,9 +125,18 @@ export async function GET(request: NextRequest) {
         .filter((log) => log.given && log.schedule_time_id)
         .map((log) => log.schedule_time_id)
     );
+    const dueMedicationIds = new Set(
+      (medications ?? [])
+        .filter((m) => isDueOnInterval(m.start_date, today, m.interval_days))
+        .map((m) => m.id)
+    );
     const pendingMedNames = new Set(
       (allScheduleTimes ?? [])
-        .filter((st) => !loggedScheduleTimeIds.has(st.id))
+        .filter(
+          (st) =>
+            dueMedicationIds.has(st.medication_id) &&
+            !loggedScheduleTimeIds.has(st.id)
+        )
         .map((st) => medications?.find((m) => m.id === st.medication_id)?.name)
         .filter((name): name is string => Boolean(name))
     );

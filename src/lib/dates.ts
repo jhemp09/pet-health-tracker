@@ -32,3 +32,20 @@ export function localNoonInstant(timezone: string, dateStr: string): Date {
   const offset = asIfUtc.getTime() - asIfTimezone.getTime();
   return new Date(naiveUtc.getTime() + offset);
 }
+
+// Whether a medication scheduled every `intervalDays` days (anchored at
+// `startDate`) is due on `targetDate`. All three are "YYYY-MM-DD" calendar
+// day strings, so this is pure date arithmetic with no timezone involved.
+// Dates before the anchor are treated as due, so editing historical entries
+// from before an interval was configured isn't hidden by the filter.
+export function isDueOnInterval(
+  startDate: string | null,
+  targetDate: string,
+  intervalDays: number
+): boolean {
+  if (intervalDays <= 1 || !startDate || targetDate < startDate) return true;
+  const diffDays = Math.round(
+    (Date.parse(targetDate) - Date.parse(startDate)) / (24 * 60 * 60 * 1000)
+  );
+  return diffDays % intervalDays === 0;
+}
