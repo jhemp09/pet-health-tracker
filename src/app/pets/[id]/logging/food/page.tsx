@@ -1,5 +1,5 @@
 import { createClient, requireUser } from "@/lib/supabase/server";
-import { localDateStr } from "@/lib/dates";
+import { formatTimeLabel, localDateStr } from "@/lib/dates";
 import { ReminderToggle } from "../../notifications/reminder-toggle";
 import { DateNav } from "../../date-nav";
 import { MealRow } from "./meal-row";
@@ -116,7 +116,7 @@ export default async function FeedingPage({
               dateStr={selectedDate}
               scheduleId={s.id}
               label={s.label}
-              timeLabel={s.scheduled_time.slice(0, 5)}
+              timeLabel={formatTimeLabel(s.scheduled_time)}
               log={logByScheduleId.get(s.id) ?? null}
               foods={foodsByScheduleId.get(s.id) ?? []}
             />

@@ -57,6 +57,17 @@ export function formatAge(birthDate: string, now: Date): string {
   return `${years} year${years === 1 ? "" : "s"}`;
 }
 
+// Formats a "HH:MM" or "HH:MM:SS" scheduled_time column value as 12-hour
+// clock time, e.g. "14:00:00" -> "2:00 PM".
+export function formatTimeLabel(time: string): string {
+  const [hourStr, minuteStr] = time.split(":");
+  const hour = Number(hourStr);
+  const minute = Number(minuteStr);
+  const period = hour >= 12 ? "PM" : "AM";
+  const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+  return `${hour12}:${minute.toString().padStart(2, "0")} ${period}`;
+}
+
 export function isDueOnInterval(
   startDate: string | null,
   targetDate: string,

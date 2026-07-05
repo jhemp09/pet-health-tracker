@@ -1,5 +1,5 @@
 import { createClient, requireUser } from "@/lib/supabase/server";
-import { isDueOnInterval, localDateStr } from "@/lib/dates";
+import { formatTimeLabel, isDueOnInterval, localDateStr } from "@/lib/dates";
 import { ReminderToggle } from "../../notifications/reminder-toggle";
 import { DateNav } from "../../date-nav";
 import { DoseRow } from "./dose-row";
@@ -116,7 +116,7 @@ export default async function MedicationsPage({
                 medicationId={medication.id}
                 scheduleTimeId={t.id}
                 label={`${medication.name}${medication.dosage ? ` (${medication.dosage})` : ""}`}
-                timeLabel={`${t.scheduled_time.slice(0, 5)}${intervalHint}`}
+                timeLabel={`${formatTimeLabel(t.scheduled_time)}${intervalHint}`}
                 log={log}
               />
             );

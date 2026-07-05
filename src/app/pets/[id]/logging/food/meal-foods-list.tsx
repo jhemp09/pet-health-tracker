@@ -204,7 +204,7 @@ export function MealFoodsList({
           onClick={() => setIsAdding(true)}
           className="rounded-full border border-dashed border-gray-300 px-3 py-1 text-xs text-gray-500 hover:bg-gray-50"
         >
-          + Add food link
+          + Add food details
         </button>
       )}
       {error && <p className="w-full text-xs text-red-700">{error}</p>}
