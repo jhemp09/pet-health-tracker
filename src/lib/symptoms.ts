@@ -60,6 +60,11 @@ export const SYMPTOM_CATALOG: SymptomDef[] = [
     scale: { type: "relative_5" },
   },
   {
+    key: "drinking",
+    label: "Drinking",
+    scale: { type: "relative_5" },
+  },
+  {
     key: "willingness_to_walk",
     label: "Willingness to Walk",
     scale: { type: "relative_5" },
