@@ -90,32 +90,33 @@ export function DoseRow({
 
   return (
     <div className="card flex flex-col gap-2 p-3">
-      <div className="flex flex-wrap items-end gap-2">
-        <div className="mr-auto min-w-[7rem]">
-          <p className="flex items-center gap-1.5 text-sm font-medium">
-            {label}
-            {linkedMealHref && (
-              <Link
-                href={linkedMealHref}
-                title="Linked meal"
-                aria-label="Go to linked meal"
-                className="flex h-5 w-5 items-center justify-center rounded-full border border-gray-200 bg-white text-xs"
-              >
-                🍽️
-              </Link>
-            )}
+      <div>
+        <p className="flex items-center gap-1.5 text-sm font-medium">
+          {label}
+          {linkedMealHref && (
+            <Link
+              href={linkedMealHref}
+              title="Linked meal"
+              aria-label="Go to linked meal"
+              className="flex h-5 w-5 items-center justify-center rounded-full border border-gray-200 bg-white text-xs"
+            >
+              🍽️
+            </Link>
+          )}
+        </p>
+        {timeLabel && (
+          <p className="text-xs" style={{ color: "var(--color-meds)" }}>
+            {timeLabel}
           </p>
-          {timeLabel && (
-            <p className="text-xs" style={{ color: "var(--color-meds)" }}>
-              {timeLabel}
-            </p>
-          )}
-          {!timeLabel && (
-            <p className="text-xs" style={{ color: "var(--color-muted)" }}>
-              Extra dose
-            </p>
-          )}
-        </div>
+        )}
+        {!timeLabel && (
+          <p className="text-xs" style={{ color: "var(--color-muted)" }}>
+            Extra dose
+          </p>
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-end gap-2">
         <div className="flex gap-1.5">
           <button
             type="button"
