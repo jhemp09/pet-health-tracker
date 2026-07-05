@@ -38,7 +38,7 @@ export default async function PetLayout({
 
       {children}
 
-      <BottomNav petId={id} />
+      <BottomNav petId={id} householdId={pet.household_id} />
     </div>
   );
 }
