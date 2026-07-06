@@ -31,14 +31,11 @@ function QuickRow({
   children: React.ReactNode;
 }) {
   return (
-    <div
-      className="flex items-center justify-between gap-3 rounded-lg px-3 py-2"
-      style={{ background: bg }}
-    >
+    <div className="flex flex-col gap-1.5 rounded-lg px-3 py-2" style={{ background: bg }}>
       <span className="text-sm font-medium" style={{ color }}>
         {label}
       </span>
-      <div className="flex items-center gap-1.5">{children}</div>
+      <div className="flex flex-wrap items-center gap-1.5">{children}</div>
     </div>
   );
 }
@@ -238,6 +235,7 @@ export function QuickLog({
   symptoms: PendingSymptom[];
 }) {
   const [doneKeys, setDoneKeys] = useState<Set<string>>(new Set());
+  const [isOpen, setIsOpen] = useState(true);
 
   function markDone(key: string) {
     setDoneKeys((prev) => new Set(prev).add(key));
@@ -253,30 +251,47 @@ export function QuickLog({
 
   return (
     <section className="card p-4">
-      <h2 className="font-heading text-lg font-semibold">Quick Log</h2>
-      {totalRemaining === 0 ? (
-        <p className="mt-2 text-sm" style={{ color: "var(--color-muted)" }}>
-          All caught up for today! 🎉
-        </p>
-      ) : (
-        <div className="mt-3 flex flex-col gap-2">
-          {remainingMeals.map((meal) => (
-            <MealRow key={meal.key} petId={petId} dateStr={dateStr} meal={meal} onDone={markDone} />
-          ))}
-          {remainingDoses.map((dose) => (
-            <DoseRow key={dose.key} petId={petId} dateStr={dateStr} dose={dose} onDone={markDone} />
-          ))}
-          {remainingSymptoms.map((symptom) => (
-            <SymptomRow
-              key={symptom.key}
-              petId={petId}
-              dateStr={dateStr}
-              symptom={symptom}
-              onDone={markDone}
-            />
-          ))}
-        </div>
-      )}
+      <button
+        type="button"
+        onClick={() => setIsOpen((o) => !o)}
+        className="flex w-full items-center justify-between"
+      >
+        <span className="font-heading text-lg font-semibold">Quick Log</span>
+        <span className="flex items-center gap-2 text-sm" style={{ color: "var(--color-muted)" }}>
+          {totalRemaining > 0 ? `${totalRemaining} pending` : "All caught up"}
+          <span
+            className="text-xs transition-transform"
+            style={{ transform: isOpen ? "rotate(90deg)" : "rotate(0deg)" }}
+          >
+            ▶
+          </span>
+        </span>
+      </button>
+
+      {isOpen &&
+        (totalRemaining === 0 ? (
+          <p className="mt-2 text-sm" style={{ color: "var(--color-muted)" }}>
+            All caught up for today! 🎉
+          </p>
+        ) : (
+          <div className="mt-3 flex flex-col gap-2">
+            {remainingMeals.map((meal) => (
+              <MealRow key={meal.key} petId={petId} dateStr={dateStr} meal={meal} onDone={markDone} />
+            ))}
+            {remainingDoses.map((dose) => (
+              <DoseRow key={dose.key} petId={petId} dateStr={dateStr} dose={dose} onDone={markDone} />
+            ))}
+            {remainingSymptoms.map((symptom) => (
+              <SymptomRow
+                key={symptom.key}
+                petId={petId}
+                dateStr={dateStr}
+                symptom={symptom}
+                onDone={markDone}
+              />
+            ))}
+          </div>
+        ))}
     </section>
   );
 }
