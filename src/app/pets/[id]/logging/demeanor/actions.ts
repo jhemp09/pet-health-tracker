@@ -61,6 +61,7 @@ export async function saveObservation(
   );
 
   revalidatePath(`/pets/${petId}/logging/demeanor`);
+  revalidatePath(`/pets/${petId}/logging`);
 }
 
 export async function deleteObservation(petId: string, observationId: string) {

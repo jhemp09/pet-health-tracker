@@ -322,6 +322,7 @@ export async function saveMedicationForDate(
   }
 
   revalidatePath(`/pets/${petId}${BASE_PATH_SUFFIX}`);
+  revalidatePath(`/pets/${petId}/logging`);
 }
 
 export async function deleteMedicationLog(petId: string, logId: string) {

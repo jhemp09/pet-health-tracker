@@ -32,11 +32,18 @@ export async function GET(request: NextRequest) {
 
   // user_id -> lines to include in that user's digest
   const digestByUser = new Map<string, string[]>();
+  // user_id -> which pet(s) contributed lines, so a single-pet digest can
+  // deep link straight to that pet's Quick Log instead of the household list.
+  const petIdsByUser = new Map<string, Set<string>>();
 
-  function addLine(userId: string, line: string) {
+  function addLine(userId: string, line: string, petId: string) {
     const lines = digestByUser.get(userId) ?? [];
     lines.push(line);
     digestByUser.set(userId, lines);
+
+    const petIds = petIdsByUser.get(userId) ?? new Set<string>();
+    petIds.add(petId);
+    petIdsByUser.set(userId, petIds);
   }
 
   for (const pet of pets) {
@@ -156,22 +163,25 @@ export async function GET(request: NextRequest) {
       if (pref.feeding_enabled && unloggedMeals.length > 0) {
         addLine(
           pref.user_id,
-          `${pet.name}: ${unloggedMeals.length} meal${unloggedMeals.length > 1 ? "s" : ""} not logged today (${unloggedMeals.map((s) => s.label).join(", ")})`
+          `${pet.name}: ${unloggedMeals.length} meal${unloggedMeals.length > 1 ? "s" : ""} not logged today (${unloggedMeals.map((s) => s.label).join(", ")})`,
+          pet.id
         );
       }
       if (pref.medication_enabled && pendingMedNames.size > 0) {
         addLine(
           pref.user_id,
-          `${pet.name}: medication due (${[...pendingMedNames].join(", ")})`
+          `${pet.name}: medication due (${[...pendingMedNames].join(", ")})`,
+          pet.id
         );
       }
       if (pref.weight_enabled && weightOverdue) {
-        addLine(pref.user_id, `${pet.name}: hasn't been weighed in over a week`);
+        addLine(pref.user_id, `${pet.name}: hasn't been weighed in over a week`, pet.id);
       }
       if (pref.demeanor_enabled && missingSymptoms.length > 0) {
         addLine(
           pref.user_id,
-          `${pet.name}: demeanor check-in incomplete (${missingSymptoms.join(", ")})`
+          `${pet.name}: demeanor check-in incomplete (${missingSymptoms.join(", ")})`,
+          pet.id
         );
       }
     }
@@ -180,10 +190,12 @@ export async function GET(request: NextRequest) {
   let sentCount = 0;
   for (const [userId, lines] of digestByUser) {
     if (lines.length === 0) continue;
+    const petIds = [...(petIdsByUser.get(userId) ?? [])];
+    const url = petIds.length === 1 ? `/pets/${petIds[0]}/logging` : "/";
     await sendPushToUsers(supabase, [userId], {
       title: "Pet Health reminders",
       body: lines.join(" · "),
-      url: "/",
+      url,
     });
     sentCount += 1;
   }

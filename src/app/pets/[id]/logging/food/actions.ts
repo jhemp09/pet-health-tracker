@@ -144,6 +144,7 @@ export async function saveFeedingForDate(
   }
 
   revalidatePath(`/pets/${petId}/logging/food`);
+  revalidatePath(`/pets/${petId}/logging`);
 }
 
 export async function deleteFeedingLog(petId: string, logId: string) {
