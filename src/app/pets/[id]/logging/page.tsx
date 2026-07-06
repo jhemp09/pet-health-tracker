@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { formatAge, formatTimeLabel, isDueOnInterval, localDateStr } from "@/lib/dates";
+import { formatTimeLabel, isDueOnInterval, localDateStr } from "@/lib/dates";
 import { getSymptomDef } from "@/lib/symptoms";
-import { PetProfileCard } from "./pet-profile-card";
 import { CATEGORY_BG, CATEGORY_COLOR, CATEGORY_ICON, type Category } from "./category-icons";
 import { QuickLog, type PendingDose, type PendingMeal, type PendingSymptom } from "./quick-log";
 
@@ -23,7 +22,7 @@ export default async function LoggingHubPage({
 
   const { data: pet } = await supabase
     .from("pets")
-    .select("name, species, breed, birth_date, households(timezone)")
+    .select("households(timezone)")
     .eq("id", petId)
     .maybeSingle();
 
@@ -32,9 +31,6 @@ export default async function LoggingHubPage({
     "UTC";
   const now = new Date();
   const todayDate = localDateStr(timezone, now);
-  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-  const sevenDaysAgoDateStr = localDateStr(timezone, sevenDaysAgo);
 
   const dayMs = 24 * 60 * 60 * 1000;
   const todayBase = new Date(`${todayDate}T00:00:00.000Z`).getTime();
@@ -128,95 +124,6 @@ export default async function LoggingHubPage({
       return def ? [{ key: `symptom-${s.symptom_key}`, symptomKey: s.symptom_key, def }] : [];
     });
 
-  const [
-    { data: weightLogs },
-    { data: feedingLogs },
-    { data: medicationLogs },
-    { data: demeanorObservations },
-  ] = await Promise.all([
-    supabase
-      .from("weight_logs")
-      .select("weight, unit, logged_at")
-      .eq("pet_id", petId)
-      .order("logged_at", { ascending: false })
-      .limit(2),
-    supabase
-      .from("feeding_logs")
-      .select("percent_eaten, fed_at")
-      .eq("pet_id", petId)
-      .gte("fed_at", fourteenDaysAgo.toISOString()),
-    supabase
-      .from("medication_logs")
-      .select("given, observed_date")
-      .eq("pet_id", petId)
-      .gte("observed_date", sevenDaysAgoDateStr),
-    supabase
-      .from("demeanor_observations")
-      .select("observed_date")
-      .eq("pet_id", petId)
-      .gte("observed_date", sevenDaysAgoDateStr),
-  ]);
-
-  const latestWeight = weightLogs?.[0]
-    ? {
-        value: weightLogs[0].weight,
-        unit: weightLogs[0].unit,
-        changeText: (() => {
-          const previous = weightLogs[1];
-          if (!previous || previous.unit !== weightLogs[0].unit) return "";
-          const diff =
-            Math.round((weightLogs[0].weight - previous.weight) * 10) / 10;
-          if (diff === 0) return "no change";
-          return diff > 0 ? `up ${diff}` : `down ${Math.abs(diff)}`;
-        })(),
-      }
-    : null;
-
-  const sevenAgoMs = sevenDaysAgo.getTime();
-  const recentFeeding = (feedingLogs ?? []).filter(
-    (l) => new Date(l.fed_at).getTime() >= sevenAgoMs
-  );
-  const priorFeeding = (feedingLogs ?? []).filter(
-    (l) => new Date(l.fed_at).getTime() < sevenAgoMs
-  );
-  const average = (entries: { percent_eaten: number }[]) =>
-    entries.length
-      ? Math.round(
-          entries.reduce((sum, l) => sum + l.percent_eaten, 0) /
-            entries.length
-        )
-      : null;
-  const recentAvg = average(recentFeeding);
-  const priorAvg = average(priorFeeding);
-  const foodIntake =
-    recentAvg === null
-      ? null
-      : {
-          avg: recentAvg,
-          trendText:
-            priorAvg === null
-              ? ""
-              : Math.abs(recentAvg - priorAvg) < 3
-                ? "steady"
-                : recentAvg > priorAvg
-                  ? `up from ${priorAvg}%`
-                  : `down from ${priorAvg}%`,
-        };
-
-  const medTotal = medicationLogs?.length ?? 0;
-  const medAdherence =
-    medTotal > 0
-      ? {
-          pct: Math.round(
-            (medicationLogs!.filter((l) => l.given).length / medTotal) * 100
-          ),
-        }
-      : null;
-
-  const demeanorDaysLogged = new Set(
-    (demeanorObservations ?? []).map((o) => o.observed_date)
-  ).size;
-
   return (
     <div className="flex flex-col gap-4">
       <QuickLog
@@ -225,16 +132,6 @@ export default async function LoggingHubPage({
         meals={pendingMeals}
         doses={pendingDoses}
         symptoms={pendingSymptoms}
-      />
-
-      <PetProfileCard
-        petId={petId}
-        name={pet?.name ?? ""}
-        species={pet?.species ?? "dog"}
-        breed={pet?.breed ?? null}
-        birthDate={pet?.birth_date ?? null}
-        age={pet?.birth_date ? formatAge(pet.birth_date, now) : null}
-        stats={{ latestWeight, foodIntake, medAdherence, demeanorDaysLogged }}
       />
 
       <div className="grid grid-cols-2 gap-3">
