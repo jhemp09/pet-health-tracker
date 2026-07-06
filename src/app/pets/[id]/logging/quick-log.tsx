@@ -129,7 +129,7 @@ function DoseRow({
         disabled={isPending}
         onClick={() => handleSave(true)}
         className="rounded-full px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
-        style={{ background: "#16a34a" }}
+        style={{ background: "#d1d5db" }}
       >
         Given
       </button>
@@ -138,7 +138,7 @@ function DoseRow({
         disabled={isPending}
         onClick={() => handleSave(false)}
         className="rounded-full px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40"
-        style={{ background: "#57534e" }}
+        style={{ background: "#d1d5db" }}
       >
         Not given
       </button>
@@ -235,7 +235,7 @@ export function QuickLog({
   symptoms: PendingSymptom[];
 }) {
   const [doneKeys, setDoneKeys] = useState<Set<string>>(new Set());
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   function markDone(key: string) {
     setDoneKeys((prev) => new Set(prev).add(key));
