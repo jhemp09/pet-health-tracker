@@ -12,6 +12,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { RELATIVE_5_LABELS, SYMPTOM_CATALOG } from "@/lib/symptoms";
 
 type FeedingLog = {
   fed_at: string;
@@ -19,15 +20,67 @@ type FeedingLog = {
   schedule_id: string | null;
 };
 type WeightLog = { logged_at: string; weight: number; unit: string };
-type VomitingObservation = { observed_date: string; value_numeric: number | null };
+type SymptomObservation = { observed_date: string; value_numeric: number | null };
 type FeedingDayPoint = {
   date: string;
   percent: number;
   meals: { label: string; percent: number }[];
 };
+type DemeanorChart =
+  | { key: string; label: string; type: "count"; data: { date: string; count: number }[] }
+  | { key: string; label: string; type: "relative_5"; data: { date: string; value: number }[] };
+
+const RELATIVE_5_SHORT: Record<number, string> = {
+  1: "Much less",
+  2: "Less",
+  3: "Normal",
+  4: "More",
+  5: "Much more",
+};
+
+function relativeLabel(value: number) {
+  return RELATIVE_5_LABELS.find((l) => l.value === value)?.label ?? String(value);
+}
 
 function dayKey(iso: string) {
   return new Date(iso).toISOString().slice(0, 10);
+}
+
+// Fills every day from the first logged entry through today (or the last
+// entry, if later) with 0, so gaps between incidents read as "none that
+// day" instead of skipping straight from one incident to the next.
+function fillCountByDay(observations: SymptomObservation[]) {
+  const byDay = new Map<string, number>();
+  for (const o of observations) {
+    if (o.value_numeric == null) continue;
+    byDay.set(o.observed_date, (byDay.get(o.observed_date) ?? 0) + o.value_numeric);
+  }
+  if (byDay.size === 0) return [];
+
+  const loggedDates = Array.from(byDay.keys()).sort();
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const startStr = loggedDates[0];
+  const endStr =
+    loggedDates[loggedDates.length - 1] > todayStr
+      ? loggedDates[loggedDates.length - 1]
+      : todayStr;
+
+  const result: { date: string; count: number }[] = [];
+  const cursor = new Date(`${startStr}T00:00:00.000Z`);
+  const end = new Date(`${endStr}T00:00:00.000Z`);
+  while (cursor <= end) {
+    const dateStr = cursor.toISOString().slice(0, 10);
+    result.push({ date: dateStr, count: byDay.get(dateStr) ?? 0 });
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return result;
+}
+
+function relativeDataFor(observations: SymptomObservation[]) {
+  return observations
+    .filter((o) => o.value_numeric != null)
+    .map((o) => ({ date: o.observed_date, value: o.value_numeric as number }))
+    .sort((a, b) => a.date.localeCompare(b.date));
 }
 
 function FoodTooltip({
@@ -55,16 +108,35 @@ function FoodTooltip({
   );
 }
 
+function RelativeTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: { payload: { date: string; value: number } }[];
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+  const data = payload[0].payload;
+  return (
+    <div className="rounded border border-gray-200 bg-white p-2 text-xs shadow">
+      <p className="font-medium">{data.date}</p>
+      <p className="text-gray-600">{relativeLabel(data.value)}</p>
+    </div>
+  );
+}
+
 export function ChartsSection({
   feedingLogs,
   mealLabels,
   weightLogs,
-  vomitingObservations,
+  activeSymptomKeys,
+  observationsBySymptom,
 }: {
   feedingLogs: FeedingLog[];
   mealLabels: Record<string, string>;
   weightLogs: WeightLog[];
-  vomitingObservations: VomitingObservation[];
+  activeSymptomKeys: string[];
+  observationsBySymptom: Record<string, SymptomObservation[]>;
 }) {
   const feedingData = useMemo(() => {
     const byDay = new Map<
@@ -103,34 +175,32 @@ export function ChartsSection({
     [weightLogs]
   );
 
-  const vomitingData = useMemo(() => {
-    const byDay = new Map<string, number>();
-    for (const o of vomitingObservations) {
-      if (o.value_numeric == null) continue;
-      byDay.set(
-        o.observed_date,
-        (byDay.get(o.observed_date) ?? 0) + o.value_numeric
-      );
-    }
-    if (byDay.size === 0) return [];
-
-    const loggedDates = Array.from(byDay.keys()).sort();
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const startStr = loggedDates[0];
-    const endStr = loggedDates[loggedDates.length - 1] > todayStr
-      ? loggedDates[loggedDates.length - 1]
-      : todayStr;
-
-    const result: { date: string; count: number }[] = [];
-    const cursor = new Date(`${startStr}T00:00:00.000Z`);
-    const end = new Date(`${endStr}T00:00:00.000Z`);
-    while (cursor <= end) {
-      const dateStr = cursor.toISOString().slice(0, 10);
-      result.push({ date: dateStr, count: byDay.get(dateStr) ?? 0 });
-      cursor.setUTCDate(cursor.getUTCDate() + 1);
-    }
-    return result;
-  }, [vomitingObservations]);
+  const demeanorCharts = useMemo(() => {
+    const activeKeySet = new Set(activeSymptomKeys);
+    return SYMPTOM_CATALOG.filter((def) => activeKeySet.has(def.key)).flatMap(
+      (def): DemeanorChart[] => {
+        const observations = observationsBySymptom[def.key] ?? [];
+        if (def.scale.type === "count") {
+          return [
+            {
+              key: def.key,
+              label: def.label,
+              type: "count",
+              data: fillCountByDay(observations),
+            },
+          ];
+        }
+        return [
+          {
+            key: def.key,
+            label: def.label,
+            type: "relative_5",
+            data: relativeDataFor(observations),
+          },
+        ];
+      }
+    );
+  }, [activeSymptomKeys, observationsBySymptom]);
 
   return (
     <section className="flex flex-col gap-8">
@@ -184,26 +254,49 @@ export function ChartsSection({
         )}
       </div>
 
-      <div>
-        <h3 className="mb-2 text-sm font-medium text-gray-700">
-          Vomiting incidents per day
-        </h3>
-        {vomitingData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={vomitingData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-              <Tooltip />
-              <Bar dataKey="count" fill="#dc2626" />
-            </BarChart>
-          </ResponsiveContainer>
-        ) : (
-          <p className="text-sm text-gray-500">
-            No vomiting incidents logged.
-          </p>
-        )}
-      </div>
+      {demeanorCharts.map((chart) => (
+        <div key={chart.key}>
+          <h3 className="mb-2 text-sm font-medium text-gray-700">
+            {chart.type === "count" ? `${chart.label} incidents per day` : chart.label}
+          </h3>
+          {chart.data.length > 0 ? (
+            chart.type === "count" ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={chart.data}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#dc2626" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={chart.data}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                  <YAxis
+                    domain={[1, 5]}
+                    ticks={[1, 2, 3, 4, 5]}
+                    tickFormatter={(v) => RELATIVE_5_SHORT[v] ?? String(v)}
+                    tick={{ fontSize: 9 }}
+                    width={70}
+                  />
+                  <Tooltip content={<RelativeTooltip />} />
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#7c3aed"
+                    dot={{ r: 2 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )
+          ) : (
+            <p className="text-sm text-gray-500">Not enough data yet.</p>
+          )}
+        </div>
+      ))}
     </section>
   );
 }

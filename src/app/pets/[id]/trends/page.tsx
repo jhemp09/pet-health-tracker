@@ -29,10 +29,9 @@ export default async function TrendsPage({
     { data: feedingLogs },
     { data: feedingSchedules },
     { data: weightLogs },
-    { data: vomitingObservations },
     { data: changeLogEntries },
     { data: medicationLogs },
-    { data: demeanorObservations },
+    { data: activeSymptoms },
   ] = await Promise.all([
     supabase
       .from("feeding_logs")
@@ -48,13 +47,6 @@ export default async function TrendsPage({
       .order("logged_at", { ascending: false })
       .limit(60),
     supabase
-      .from("demeanor_observations")
-      .select("observed_date, value_numeric")
-      .eq("pet_id", petId)
-      .eq("symptom_key", "vomiting_count")
-      .order("observed_date", { ascending: false })
-      .limit(60),
-    supabase
       .from("change_log_entries")
       .select("id, event_date, category, description")
       .eq("pet_id", petId)
@@ -67,11 +59,31 @@ export default async function TrendsPage({
       .eq("pet_id", petId)
       .gte("observed_date", sevenDaysAgoDateStr),
     supabase
-      .from("demeanor_observations")
-      .select("observed_date")
+      .from("pet_demeanor_symptoms")
+      .select("symptom_key")
       .eq("pet_id", petId)
-      .gte("observed_date", sevenDaysAgoDateStr),
+      .eq("active", true),
   ]);
+
+  const activeSymptomKeys = (activeSymptoms ?? []).map((s) => s.symptom_key);
+  const { data: demeanorObservations } =
+    activeSymptomKeys.length > 0
+      ? await supabase
+          .from("demeanor_observations")
+          .select("symptom_key, observed_date, value_numeric")
+          .eq("pet_id", petId)
+          .in("symptom_key", activeSymptomKeys)
+      : { data: [] as { symptom_key: string; observed_date: string; value_numeric: number | null }[] };
+
+  const observationsBySymptom: Record<
+    string,
+    { observed_date: string; value_numeric: number | null }[]
+  > = {};
+  for (const o of demeanorObservations ?? []) {
+    const list = observationsBySymptom[o.symptom_key] ?? [];
+    list.push({ observed_date: o.observed_date, value_numeric: o.value_numeric });
+    observationsBySymptom[o.symptom_key] = list;
+  }
 
   const mealLabels = Object.fromEntries(
     (feedingSchedules ?? []).map((s) => [s.id, s.label])
@@ -134,7 +146,9 @@ export default async function TrendsPage({
       : null;
 
   const demeanorDaysLogged = new Set(
-    (demeanorObservations ?? []).map((o) => o.observed_date)
+    (demeanorObservations ?? [])
+      .filter((o) => o.observed_date >= sevenDaysAgoDateStr)
+      .map((o) => o.observed_date)
   ).size;
 
   return (
@@ -153,7 +167,8 @@ export default async function TrendsPage({
         feedingLogs={feedingLogs ?? []}
         mealLabels={mealLabels}
         weightLogs={weightLogs ?? []}
-        vomitingObservations={vomitingObservations ?? []}
+        activeSymptomKeys={activeSymptomKeys}
+        observationsBySymptom={observationsBySymptom}
       />
       <ChangeLogTimeline petId={petId} entries={changeLogEntries ?? []} />
     </div>
