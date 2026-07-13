@@ -18,17 +18,37 @@ type FeedingLog = {
   fed_at: string;
   percent_eaten: number;
   schedule_id: string | null;
+  notes: string | null;
 };
-type WeightLog = { logged_at: string; weight: number; unit: string };
-type SymptomObservation = { observed_date: string; value_numeric: number | null };
+type WeightLog = {
+  logged_at: string;
+  weight: number;
+  unit: string;
+  notes: string | null;
+};
+type SymptomObservation = {
+  observed_date: string;
+  value_numeric: number | null;
+  notes: string | null;
+};
 type FeedingDayPoint = {
   date: string;
   percent: number;
-  meals: { label: string; percent: number }[];
+  meals: { label: string; percent: number; notes: string | null }[];
 };
 type DemeanorChart =
-  | { key: string; label: string; type: "count"; data: { date: string; count: number }[] }
-  | { key: string; label: string; type: "relative_5"; data: { date: string; value: number }[] };
+  | {
+      key: string;
+      label: string;
+      type: "count";
+      data: { date: string; count: number; notes: string | null }[];
+    }
+  | {
+      key: string;
+      label: string;
+      type: "relative_5";
+      data: { date: string; value: number; notes: string | null }[];
+    };
 
 const RELATIVE_5_SHORT: Record<number, string> = {
   1: "Much less",
@@ -50,10 +70,14 @@ function dayKey(iso: string) {
 // entry, if later) with 0, so gaps between incidents read as "none that
 // day" instead of skipping straight from one incident to the next.
 function fillCountByDay(observations: SymptomObservation[]) {
-  const byDay = new Map<string, number>();
+  const byDay = new Map<string, { count: number; notes: string | null }>();
   for (const o of observations) {
     if (o.value_numeric == null) continue;
-    byDay.set(o.observed_date, (byDay.get(o.observed_date) ?? 0) + o.value_numeric);
+    const existing = byDay.get(o.observed_date);
+    byDay.set(o.observed_date, {
+      count: (existing?.count ?? 0) + o.value_numeric,
+      notes: o.notes ?? existing?.notes ?? null,
+    });
   }
   if (byDay.size === 0) return [];
 
@@ -65,12 +89,13 @@ function fillCountByDay(observations: SymptomObservation[]) {
       ? loggedDates[loggedDates.length - 1]
       : todayStr;
 
-  const result: { date: string; count: number }[] = [];
+  const result: { date: string; count: number; notes: string | null }[] = [];
   const cursor = new Date(`${startStr}T00:00:00.000Z`);
   const end = new Date(`${endStr}T00:00:00.000Z`);
   while (cursor <= end) {
     const dateStr = cursor.toISOString().slice(0, 10);
-    result.push({ date: dateStr, count: byDay.get(dateStr) ?? 0 });
+    const entry = byDay.get(dateStr);
+    result.push({ date: dateStr, count: entry?.count ?? 0, notes: entry?.notes ?? null });
     cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
   return result;
@@ -79,7 +104,11 @@ function fillCountByDay(observations: SymptomObservation[]) {
 function relativeDataFor(observations: SymptomObservation[]) {
   return observations
     .filter((o) => o.value_numeric != null)
-    .map((o) => ({ date: o.observed_date, value: o.value_numeric as number }))
+    .map((o) => ({
+      date: o.observed_date,
+      value: o.value_numeric as number,
+      notes: o.notes,
+    }))
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
@@ -100,10 +129,48 @@ function FoodTooltip({
       <ul className="flex flex-col gap-0.5 text-gray-600">
         {data.meals.map((m, i) => (
           <li key={i}>
-            {m.label}: {m.percent}%
+            {m.label}: {m.percent}%{m.notes ? ` — ${m.notes}` : ""}
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+function WeightTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: { payload: { date: string; weight: number; unit: string; notes: string | null } }[];
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+  const data = payload[0].payload;
+  return (
+    <div className="rounded border border-gray-200 bg-white p-2 text-xs shadow">
+      <p className="font-medium">
+        {data.date} — {data.weight} {data.unit}
+      </p>
+      {data.notes && <p className="text-gray-600">{data.notes}</p>}
+    </div>
+  );
+}
+
+function CountTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: { payload: { date: string; count: number; notes: string | null } }[];
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+  const data = payload[0].payload;
+  return (
+    <div className="rounded border border-gray-200 bg-white p-2 text-xs shadow">
+      <p className="font-medium">
+        {data.date} — {data.count}
+      </p>
+      {data.notes && <p className="text-gray-600">{data.notes}</p>}
     </div>
   );
 }
@@ -113,7 +180,7 @@ function RelativeTooltip({
   payload,
 }: {
   active?: boolean;
-  payload?: { payload: { date: string; value: number } }[];
+  payload?: { payload: { date: string; value: number; notes: string | null } }[];
 }) {
   if (!active || !payload || payload.length === 0) return null;
   const data = payload[0].payload;
@@ -121,6 +188,7 @@ function RelativeTooltip({
     <div className="rounded border border-gray-200 bg-white p-2 text-xs shadow">
       <p className="font-medium">{data.date}</p>
       <p className="text-gray-600">{relativeLabel(data.value)}</p>
+      {data.notes && <p className="text-gray-600">{data.notes}</p>}
     </div>
   );
 }
@@ -141,7 +209,11 @@ export function ChartsSection({
   const feedingData = useMemo(() => {
     const byDay = new Map<
       string,
-      { total: number; count: number; meals: { label: string; percent: number }[] }
+      {
+        total: number;
+        count: number;
+        meals: { label: string; percent: number; notes: string | null }[];
+      }
     >();
     for (const log of [...feedingLogs].sort((a, b) => a.fed_at.localeCompare(b.fed_at))) {
       const date = dayKey(log.fed_at);
@@ -151,6 +223,7 @@ export function ChartsSection({
       entry.meals.push({
         label: (log.schedule_id && mealLabels[log.schedule_id]) || "Extra feeding",
         percent: log.percent_eaten,
+        notes: log.notes,
       });
       byDay.set(date, entry);
     }
@@ -171,6 +244,7 @@ export function ChartsSection({
           date: dayKey(l.logged_at),
           weight: l.weight,
           unit: l.unit,
+          notes: l.notes,
         })),
     [weightLogs]
   );
@@ -240,7 +314,7 @@ export function ChartsSection({
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip />
+              <Tooltip content={<WeightTooltip />} />
               <Line
                 type="monotone"
                 dataKey="weight"
@@ -266,7 +340,7 @@ export function ChartsSection({
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                   <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                  <Tooltip />
+                  <Tooltip content={<CountTooltip />} />
                   <Bar dataKey="count" fill="#dc2626" />
                 </BarChart>
               </ResponsiveContainer>

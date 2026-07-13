@@ -70,18 +70,25 @@ export default async function TrendsPage({
     activeSymptomKeys.length > 0
       ? await supabase
           .from("demeanor_observations")
-          .select("symptom_key, observed_date, value_numeric")
+          .select("symptom_key, observed_date, value_numeric, notes")
           .eq("pet_id", petId)
           .in("symptom_key", activeSymptomKeys)
-      : { data: [] as { symptom_key: string; observed_date: string; value_numeric: number | null }[] };
+      : {
+          data: [] as {
+            symptom_key: string;
+            observed_date: string;
+            value_numeric: number | null;
+            notes: string | null;
+          }[],
+        };
 
   const observationsBySymptom: Record<
     string,
-    { observed_date: string; value_numeric: number | null }[]
+    { observed_date: string; value_numeric: number | null; notes: string | null }[]
   > = {};
   for (const o of demeanorObservations ?? []) {
     const list = observationsBySymptom[o.symptom_key] ?? [];
-    list.push({ observed_date: o.observed_date, value_numeric: o.value_numeric });
+    list.push({ observed_date: o.observed_date, value_numeric: o.value_numeric, notes: o.notes });
     observationsBySymptom[o.symptom_key] = list;
   }
 
