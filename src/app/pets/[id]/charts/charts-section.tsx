@@ -106,15 +106,30 @@ export function ChartsSection({
   const vomitingData = useMemo(() => {
     const byDay = new Map<string, number>();
     for (const o of vomitingObservations) {
-      if (!o.value_numeric) continue;
+      if (o.value_numeric == null) continue;
       byDay.set(
         o.observed_date,
         (byDay.get(o.observed_date) ?? 0) + o.value_numeric
       );
     }
-    return Array.from(byDay.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, count]) => ({ date, count }));
+    if (byDay.size === 0) return [];
+
+    const loggedDates = Array.from(byDay.keys()).sort();
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const startStr = loggedDates[0];
+    const endStr = loggedDates[loggedDates.length - 1] > todayStr
+      ? loggedDates[loggedDates.length - 1]
+      : todayStr;
+
+    const result: { date: string; count: number }[] = [];
+    const cursor = new Date(`${startStr}T00:00:00.000Z`);
+    const end = new Date(`${endStr}T00:00:00.000Z`);
+    while (cursor <= end) {
+      const dateStr = cursor.toISOString().slice(0, 10);
+      result.push({ date: dateStr, count: byDay.get(dateStr) ?? 0 });
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    return result;
   }, [vomitingObservations]);
 
   return (
