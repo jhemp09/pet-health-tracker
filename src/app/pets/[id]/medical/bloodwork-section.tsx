@@ -118,14 +118,14 @@ export function BloodworkSection({
           action={(formData) => uploadBloodwork(petId, formData)}
           className="flex flex-wrap items-end gap-2"
         >
-          <label className="flex flex-col gap-1 text-xs">
+          <label className="flex min-w-0 max-w-full flex-1 flex-col gap-1 text-xs">
             File (image or PDF)
             <input
               type="file"
               name="file"
               accept="image/*,application/pdf"
               required
-              className="text-sm"
+              className="w-full max-w-full text-sm"
             />
           </label>
           <label className="flex flex-col gap-1 text-xs">
