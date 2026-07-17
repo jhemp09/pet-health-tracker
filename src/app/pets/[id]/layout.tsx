@@ -34,7 +34,7 @@ export default async function PetLayout({
     .order("created_at", { ascending: true });
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-2xl flex-col overflow-x-hidden px-6 pb-20 pt-6">
+    <div className="mx-auto min-h-dvh min-w-0 max-w-2xl overflow-x-hidden px-6 pb-20 pt-6">
       <div className="mb-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <BackLink petId={id} householdId={pet.household_id} />
