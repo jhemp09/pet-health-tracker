@@ -1,11 +1,21 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import {
   deleteBloodworkFile,
   getBloodworkUrl,
+  retryParseBloodwork,
   uploadBloodwork,
 } from "./actions";
+
+type Result = {
+  id: string;
+  test_name: string;
+  value: string;
+  unit: string | null;
+  reference_range: string | null;
+  flag: "low" | "high" | "normal" | "abnormal" | null;
+};
 
 type FileEntry = {
   id: string;
@@ -14,7 +24,80 @@ type FileEntry = {
   storage_path: string;
   taken_at: string | null;
   notes: string | null;
+  parse_status: "pending" | "done" | "failed";
+  parsed_summary: string | null;
+  results: Result[];
 };
+
+const FLAG_COLOR: Record<NonNullable<Result["flag"]>, string> = {
+  low: "#d97706",
+  high: "#dc2626",
+  abnormal: "#dc2626",
+  normal: "#78716c",
+};
+
+function BloodworkResults({ file, petId }: { file: FileEntry; petId: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  if (file.parse_status === "done") {
+    return (
+      <div className="mt-2 rounded border border-gray-100 bg-gray-50 p-2 text-xs">
+        {file.parsed_summary && <p className="mb-1 text-gray-700">{file.parsed_summary}</p>}
+        {file.results.length > 0 && (
+          <>
+            <button
+              type="button"
+              onClick={() => setExpanded((e) => !e)}
+              className="text-blue-600 underline"
+            >
+              {expanded ? "Hide" : "View"} lab results ({file.results.length})
+            </button>
+            {expanded && (
+              <ul className="mt-2 flex flex-col gap-1">
+                {file.results.map((r) => (
+                  <li key={r.id} className="flex items-center justify-between gap-2">
+                    <span>
+                      {r.test_name}: {r.value}
+                      {r.unit ? ` ${r.unit}` : ""}
+                      {r.reference_range ? ` (ref: ${r.reference_range})` : ""}
+                    </span>
+                    {r.flag && (
+                      <span
+                        className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase text-white"
+                        style={{ background: FLAG_COLOR[r.flag] }}
+                      >
+                        {r.flag}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+      </div>
+    );
+  }
+
+  if (file.parse_status === "failed") {
+    return (
+      <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
+        <span>Automatic lab result parsing didn&apos;t work for this file.</span>
+        <button
+          type="button"
+          disabled={isPending}
+          onClick={() => startTransition(() => retryParseBloodwork(petId, file.id))}
+          className="text-blue-600 underline disabled:opacity-50"
+        >
+          {isPending ? "Retrying…" : "Retry"}
+        </button>
+      </div>
+    );
+  }
+
+  return null;
+}
 
 export function BloodworkSection({
   petId,
@@ -66,43 +149,49 @@ export function BloodworkSection({
             Upload
           </button>
         </form>
+        <p className="mt-2 text-xs text-gray-500">
+          Uploads are automatically scanned for lab values — this can take a few seconds.
+        </p>
       </div>
 
       {files.length > 0 ? (
-        <ul className="flex flex-col gap-1 text-sm text-gray-700">
+        <ul className="flex flex-col gap-2 text-sm text-gray-700">
           {files.map((f) => (
-            <li key={f.id} className="flex items-center justify-between">
-              <span>
-                {f.taken_at ? `${f.taken_at} — ` : ""}
-                {f.file_name} ({f.file_type})
-                {f.notes ? ` — ${f.notes}` : ""}
-              </span>
-              <span className="flex items-center gap-2">
-                <button
-                  type="button"
-                  className="text-xs text-blue-600 underline"
-                  onClick={() => {
-                    startTransition(async () => {
-                      const url = await getBloodworkUrl(f.storage_path);
-                      if (url) window.open(url, "_blank");
-                    });
-                  }}
-                >
-                  View
-                </button>
-                <button
-                  type="button"
-                  disabled={isPending}
-                  className="text-xs text-red-600 underline"
-                  onClick={() =>
-                    startTransition(() =>
-                      deleteBloodworkFile(petId, f.id, f.storage_path)
-                    )
-                  }
-                >
-                  Delete
-                </button>
-              </span>
+            <li key={f.id} className="rounded border border-gray-200 p-3">
+              <div className="flex items-center justify-between">
+                <span>
+                  {f.taken_at ? `${f.taken_at} — ` : ""}
+                  {f.file_name} ({f.file_type})
+                  {f.notes ? ` — ${f.notes}` : ""}
+                </span>
+                <span className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="text-xs text-blue-600 underline"
+                    onClick={() => {
+                      startTransition(async () => {
+                        const url = await getBloodworkUrl(f.storage_path);
+                        if (url) window.open(url, "_blank");
+                      });
+                    }}
+                  >
+                    View
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    className="text-xs text-red-600 underline"
+                    onClick={() =>
+                      startTransition(() =>
+                        deleteBloodworkFile(petId, f.id, f.storage_path)
+                      )
+                    }
+                  >
+                    Delete
+                  </button>
+                </span>
+              </div>
+              <BloodworkResults file={f} petId={petId} />
             </li>
           ))}
         </ul>

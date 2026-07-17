@@ -315,6 +315,10 @@ export interface Database {
           file_type: "image" | "pdf";
           taken_at: string | null;
           notes: string | null;
+          mime_type: string | null;
+          parse_status: "pending" | "done" | "failed";
+          parsed_summary: string | null;
+          parsed_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -325,10 +329,42 @@ export interface Database {
           file_type: "image" | "pdf";
           taken_at?: string | null;
           notes?: string | null;
+          mime_type?: string | null;
         };
         Update: {
           taken_at?: string | null;
           notes?: string | null;
+          parse_status?: "pending" | "done" | "failed";
+          parsed_summary?: string | null;
+          parsed_at?: string | null;
+        };
+        Relationships: [];
+      };
+      bloodwork_results: {
+        Row: {
+          id: string;
+          bloodwork_file_id: string;
+          test_name: string;
+          value: string;
+          unit: string | null;
+          reference_range: string | null;
+          flag: "low" | "high" | "normal" | "abnormal" | null;
+          created_at: string;
+        };
+        Insert: {
+          bloodwork_file_id: string;
+          test_name: string;
+          value: string;
+          unit?: string | null;
+          reference_range?: string | null;
+          flag?: "low" | "high" | "normal" | "abnormal" | null;
+        };
+        Update: {
+          test_name?: string;
+          value?: string;
+          unit?: string | null;
+          reference_range?: string | null;
+          flag?: "low" | "high" | "normal" | "abnormal" | null;
         };
         Relationships: [];
       };
