@@ -28,7 +28,7 @@ export function PetSwitcher({
     <select
       value=""
       onChange={handleChange}
-      className="rounded border border-gray-300 bg-white px-2 py-1 text-sm"
+      className="max-w-[45vw] shrink-0 rounded border border-gray-300 bg-white px-2 py-1 text-sm"
       aria-label="Switch pet"
     >
       <option value="" disabled>

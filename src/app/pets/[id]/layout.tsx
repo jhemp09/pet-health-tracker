@@ -36,7 +36,7 @@ export default async function PetLayout({
   return (
     <div className="mx-auto flex min-h-dvh max-w-2xl flex-col overflow-x-hidden px-6 pb-20 pt-6">
       <div className="mb-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <BackLink petId={id} householdId={pet.household_id} />
           <PetSwitcher petId={id} pets={householdPets ?? []} />
         </div>
@@ -46,9 +46,9 @@ export default async function PetLayout({
             photoUrl={pet.photo_url}
             petName={pet.name}
           />
-          <div>
-            <h1 className="text-xl font-semibold">{pet.name}</h1>
-            <p className="text-sm text-gray-600">
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-xl font-semibold">{pet.name}</h1>
+            <p className="truncate text-sm text-gray-600">
               {pet.breed ? `${pet.breed} · ` : ""}
               {pet.birth_date ? formatAge(pet.birth_date, new Date()) : ""}
             </p>
