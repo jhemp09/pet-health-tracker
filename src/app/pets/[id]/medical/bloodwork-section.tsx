@@ -56,8 +56,8 @@ function BloodworkResults({ file, petId }: { file: FileEntry; petId: string }) {
             {expanded && (
               <ul className="mt-2 flex flex-col gap-1">
                 {file.results.map((r) => (
-                  <li key={r.id} className="flex items-center justify-between gap-2">
-                    <span>
+                  <li key={r.id} className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="min-w-0 break-words">
                       {r.test_name}: {r.value}
                       {r.unit ? ` ${r.unit}` : ""}
                       {r.reference_range ? ` (ref: ${r.reference_range})` : ""}
@@ -82,13 +82,15 @@ function BloodworkResults({ file, petId }: { file: FileEntry; petId: string }) {
 
   if (file.parse_status === "failed") {
     return (
-      <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
-        <span>Automatic lab result parsing didn&apos;t work for this file.</span>
+      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
+        <span className="min-w-0 break-words">
+          Automatic lab result parsing didn&apos;t work for this file.
+        </span>
         <button
           type="button"
           disabled={isPending}
           onClick={() => startTransition(() => retryParseBloodwork(petId, file.id))}
-          className="text-blue-600 underline disabled:opacity-50"
+          className="shrink-0 text-blue-600 underline disabled:opacity-50"
         >
           {isPending ? "Retrying…" : "Retry"}
         </button>
@@ -158,13 +160,13 @@ export function BloodworkSection({
         <ul className="flex flex-col gap-2 text-sm text-gray-700">
           {files.map((f) => (
             <li key={f.id} className="rounded border border-gray-200 p-3">
-              <div className="flex items-center justify-between">
-                <span>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="min-w-0 flex-1 break-words">
                   {f.taken_at ? `${f.taken_at} — ` : ""}
                   {f.file_name} ({f.file_type})
                   {f.notes ? ` — ${f.notes}` : ""}
                 </span>
-                <span className="flex items-center gap-2">
+                <span className="flex shrink-0 items-center gap-2">
                   <button
                     type="button"
                     className="text-xs text-blue-600 underline"
