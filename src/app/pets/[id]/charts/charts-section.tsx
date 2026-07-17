@@ -58,6 +58,12 @@ const RELATIVE_5_SHORT: Record<number, string> = {
   5: "Much more",
 };
 
+// Recharts sizes its tooltip wrapper to the content's natural width, which
+// can push it past the right edge of the screen on mobile since the chart
+// spans nearly the full viewport. Capping width + wrapping text keeps it
+// on-screen regardless of where on the chart it's triggered.
+const TOOLTIP_WRAPPER_STYLE = { maxWidth: "70vw", zIndex: 20 };
+
 function relativeLabel(value: number) {
   return RELATIVE_5_LABELS.find((l) => l.value === value)?.label ?? String(value);
 }
@@ -122,7 +128,7 @@ function FoodTooltip({
   if (!active || !payload || payload.length === 0) return null;
   const data = payload[0].payload;
   return (
-    <div className="rounded border border-gray-200 bg-white p-2 text-xs shadow">
+    <div className="max-w-[70vw] break-words rounded border border-gray-200 bg-white p-2 text-xs shadow">
       <p className="mb-1 font-medium">
         {data.date} — {data.percent}% avg
       </p>
@@ -147,7 +153,7 @@ function WeightTooltip({
   if (!active || !payload || payload.length === 0) return null;
   const data = payload[0].payload;
   return (
-    <div className="rounded border border-gray-200 bg-white p-2 text-xs shadow">
+    <div className="max-w-[70vw] break-words rounded border border-gray-200 bg-white p-2 text-xs shadow">
       <p className="font-medium">
         {data.date} — {data.weight} {data.unit}
       </p>
@@ -166,7 +172,7 @@ function CountTooltip({
   if (!active || !payload || payload.length === 0) return null;
   const data = payload[0].payload;
   return (
-    <div className="rounded border border-gray-200 bg-white p-2 text-xs shadow">
+    <div className="max-w-[70vw] break-words rounded border border-gray-200 bg-white p-2 text-xs shadow">
       <p className="font-medium">
         {data.date} — {data.count}
       </p>
@@ -185,7 +191,7 @@ function RelativeTooltip({
   if (!active || !payload || payload.length === 0) return null;
   const data = payload[0].payload;
   return (
-    <div className="rounded border border-gray-200 bg-white p-2 text-xs shadow">
+    <div className="max-w-[70vw] break-words rounded border border-gray-200 bg-white p-2 text-xs shadow">
       <p className="font-medium">{data.date}</p>
       <p className="text-gray-600">{relativeLabel(data.value)}</p>
       {data.notes && <p className="text-gray-600">{data.notes}</p>}
@@ -290,7 +296,11 @@ export function ChartsSection({
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" tick={{ fontSize: 11 }} />
               <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
-              <Tooltip content={<FoodTooltip />} />
+              <Tooltip
+                content={<FoodTooltip />}
+                wrapperStyle={TOOLTIP_WRAPPER_STYLE}
+                allowEscapeViewBox={{ x: false, y: false }}
+              />
               <Line
                 type="monotone"
                 dataKey="percent"
@@ -314,7 +324,11 @@ export function ChartsSection({
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip content={<WeightTooltip />} />
+              <Tooltip
+                content={<WeightTooltip />}
+                wrapperStyle={TOOLTIP_WRAPPER_STYLE}
+                allowEscapeViewBox={{ x: false, y: false }}
+              />
               <Line
                 type="monotone"
                 dataKey="weight"
@@ -340,7 +354,11 @@ export function ChartsSection({
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                   <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                  <Tooltip content={<CountTooltip />} />
+                  <Tooltip
+                    content={<CountTooltip />}
+                    wrapperStyle={TOOLTIP_WRAPPER_STYLE}
+                    allowEscapeViewBox={{ x: false, y: false }}
+                  />
                   <Bar dataKey="count" fill="#dc2626" />
                 </BarChart>
               </ResponsiveContainer>
@@ -356,7 +374,11 @@ export function ChartsSection({
                     tick={{ fontSize: 9 }}
                     width={70}
                   />
-                  <Tooltip content={<RelativeTooltip />} />
+                  <Tooltip
+                    content={<RelativeTooltip />}
+                    wrapperStyle={TOOLTIP_WRAPPER_STYLE}
+                    allowEscapeViewBox={{ x: false, y: false }}
+                  />
                   <Line
                     type="monotone"
                     dataKey="value"
