@@ -44,8 +44,8 @@ function BloodworkResults({ file, petId }: { file: FileEntry; petId: string }) {
     return (
       <div className="mt-2 rounded border border-gray-100 bg-gray-50 p-2 text-xs">
         {file.parsed_summary && <p className="mb-1 text-gray-700">{file.parsed_summary}</p>}
-        {file.results.length > 0 && (
-          <>
+        <div className="flex flex-wrap items-center gap-3">
+          {file.results.length > 0 && (
             <button
               type="button"
               onClick={() => setExpanded((e) => !e)}
@@ -53,28 +53,36 @@ function BloodworkResults({ file, petId }: { file: FileEntry; petId: string }) {
             >
               {expanded ? "Hide" : "View"} lab results ({file.results.length})
             </button>
-            {expanded && (
-              <ul className="mt-2 flex flex-col gap-1">
-                {file.results.map((r) => (
-                  <li key={r.id} className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="min-w-0 break-words">
-                      {r.test_name}: {r.value}
-                      {r.unit ? ` ${r.unit}` : ""}
-                      {r.reference_range ? ` (ref: ${r.reference_range})` : ""}
-                    </span>
-                    {r.flag && (
-                      <span
-                        className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase text-white"
-                        style={{ background: FLAG_COLOR[r.flag] }}
-                      >
-                        {r.flag}
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </>
+          )}
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() => startTransition(() => retryParseBloodwork(petId, file.id))}
+            className="shrink-0 text-blue-600 underline disabled:opacity-50"
+          >
+            {isPending ? "Scanning…" : "Re-scan"}
+          </button>
+        </div>
+        {expanded && (
+          <ul className="mt-2 flex flex-col gap-1">
+            {file.results.map((r) => (
+              <li key={r.id} className="flex flex-wrap items-center justify-between gap-2">
+                <span className="min-w-0 break-words">
+                  {r.test_name}: {r.value}
+                  {r.unit ? ` ${r.unit}` : ""}
+                  {r.reference_range ? ` (ref: ${r.reference_range})` : ""}
+                </span>
+                {r.flag && (
+                  <span
+                    className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase text-white"
+                    style={{ background: FLAG_COLOR[r.flag] }}
+                  >
+                    {r.flag}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     );
