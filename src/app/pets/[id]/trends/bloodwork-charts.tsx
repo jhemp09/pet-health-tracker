@@ -18,13 +18,11 @@ export type BloodworkChart = {
   referenceRange: string | null;
   data: BloodworkChartPoint[];
 };
-export type OtherBloodworkResult = {
+export type OtherBloodworkTest = {
   testName: string;
-  latestValue: string;
   unit: string | null;
   referenceRange: string | null;
-  flag: string | null;
-  date: string;
+  points: { date: string; value: string; flag: string | null }[];
 };
 
 // Reference ranges come out of the LLM extraction as free text, e.g.
@@ -88,12 +86,82 @@ function LabTooltip({
   );
 }
 
+function OtherResultsTable({ tests }: { tests: OtherBloodworkTest[] }) {
+  const allDates = Array.from(
+    new Set(tests.flatMap((t) => t.points.map((p) => p.date)))
+  ).sort();
+
+  return (
+    <div className="min-w-0">
+      <h3 className="mb-2 text-sm font-medium text-gray-700">Other tracked values</h3>
+      {/* overflow-x-auto here (not on an ancestor) both creates the scroll
+          container and, per the flex automatic-minimum-size rule, keeps this
+          table from forcing the flex-column section around it wider than
+          the viewport. */}
+      <div className="overflow-x-auto rounded border border-gray-200">
+        <table className="w-full min-w-max border-collapse text-xs">
+          <thead>
+            <tr className="border-b border-gray-200 bg-gray-50">
+              <th className="sticky left-0 z-10 whitespace-nowrap border-r border-gray-200 bg-gray-50 px-2 py-1.5 text-left font-medium text-gray-700">
+                Test
+              </th>
+              {allDates.map((date) => (
+                <th
+                  key={date}
+                  className="whitespace-nowrap px-2 py-1.5 text-right font-medium text-gray-700"
+                >
+                  {date}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {tests.map((t) => {
+              const byDate = new Map(t.points.map((p) => [p.date, p]));
+              return (
+                <tr key={t.testName} className="border-b border-gray-100 last:border-0">
+                  <td className="sticky left-0 z-10 whitespace-nowrap border-r border-gray-200 bg-white px-2 py-1.5 text-gray-700">
+                    {t.testName}
+                    {t.unit ? ` (${t.unit})` : ""}
+                    {t.referenceRange && (
+                      <span className="block text-[10px] text-gray-400">
+                        ref: {t.referenceRange}
+                      </span>
+                    )}
+                  </td>
+                  {allDates.map((date) => {
+                    const p = byDate.get(date);
+                    const isAbnormal = p?.flag && p.flag !== "normal";
+                    return (
+                      <td
+                        key={date}
+                        className="whitespace-nowrap px-2 py-1.5 text-right"
+                        style={
+                          isAbnormal
+                            ? { color: FLAG_COLOR[p!.flag as string], fontWeight: 600 }
+                            : undefined
+                        }
+                      >
+                        {p ? p.value : "—"}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export function BloodworkCharts({
   charts,
   otherResults,
 }: {
   charts: BloodworkChart[];
-  otherResults: OtherBloodworkResult[];
+  otherResults: OtherBloodworkTest[];
 }) {
   if (charts.length === 0 && otherResults.length === 0) {
     return (
@@ -199,38 +267,7 @@ export function BloodworkCharts({
         })
       )}
 
-      {otherResults.length > 0 && (
-        <div>
-          <h3 className="mb-2 text-sm font-medium text-gray-700">
-            Other tracked values (latest)
-          </h3>
-          <ul className="flex flex-col gap-1 text-sm text-gray-700">
-            {otherResults.map((r) => (
-              <li
-                key={r.testName}
-                className="flex flex-wrap items-center justify-between gap-2 rounded border border-gray-100 px-2 py-1"
-              >
-                <span className="min-w-0 break-words">
-                  {r.testName}: {r.latestValue}
-                  {r.unit ? ` ${r.unit}` : ""}{" "}
-                  <span className="text-gray-400">
-                    ({r.date}
-                    {r.referenceRange ? `, ref: ${r.referenceRange}` : ""})
-                  </span>
-                </span>
-                {r.flag && (
-                  <span
-                    className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase text-white"
-                    style={{ background: FLAG_COLOR[r.flag] ?? "#78716c" }}
-                  >
-                    {r.flag}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {otherResults.length > 0 && <OtherResultsTable tests={otherResults} />}
     </section>
   );
 }

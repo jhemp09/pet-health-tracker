@@ -7,7 +7,7 @@ import { TrendsTabs } from "./trends-tabs";
 import {
   BloodworkCharts,
   type BloodworkChart,
-  type OtherBloodworkResult,
+  type OtherBloodworkTest,
 } from "./bloodwork-charts";
 
 export default async function TrendsPage({
@@ -168,12 +168,12 @@ export default async function TrendsPage({
   // (b) been flagged abnormal at least once — the rest still surface as a
   // compact "latest value" list so nothing's hidden.
   const bloodworkCharts: BloodworkChart[] = [];
-  const otherBloodworkResults: OtherBloodworkResult[] = [];
+  const otherBloodworkResults: OtherBloodworkTest[] = [];
   for (const group of labGroups.values()) {
     const numericPoints = group.points.filter((p) => p.numericValue != null);
     const hasAbnormal = group.points.some((p) => p.flag && p.flag !== "normal");
+    const latestWithRange = [...group.points].reverse().find((p) => p.referenceRange);
     if (numericPoints.length >= 2 && hasAbnormal) {
-      const latestWithRange = [...group.points].reverse().find((p) => p.referenceRange);
       bloodworkCharts.push({
         testName: group.displayName,
         unit: group.unit,
@@ -185,14 +185,15 @@ export default async function TrendsPage({
         })),
       });
     } else {
-      const latest = group.points[group.points.length - 1];
       otherBloodworkResults.push({
         testName: group.displayName,
-        latestValue: latest.rawValue,
-        unit: latest.unit,
-        referenceRange: latest.referenceRange,
-        flag: latest.flag,
-        date: latest.date,
+        unit: group.unit,
+        referenceRange: latestWithRange?.referenceRange ?? null,
+        points: group.points.map((p) => ({
+          date: p.date,
+          value: p.rawValue,
+          flag: p.flag,
+        })),
       });
     }
   }
