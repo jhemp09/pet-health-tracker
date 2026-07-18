@@ -32,7 +32,11 @@ const EXTRACTION_TOOL = {
         items: {
           type: "object" as const,
           properties: {
-            test_name: { type: "string" as const },
+            test_name: {
+              type: "string" as const,
+              description:
+                "The standard/common name for this lab test (e.g. 'BUN', 'Creatinine', 'ALT', 'WBC'), not the lab's internal code, so the same test can be matched up across multiple reports over time.",
+            },
             value: { type: "string" as const },
             unit: { type: "string" as const },
             reference_range: { type: "string" as const },

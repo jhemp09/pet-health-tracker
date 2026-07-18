@@ -3,6 +3,12 @@ import { formatAge, localDateStr } from "@/lib/dates";
 import { PetProfileCard } from "../logging/pet-profile-card";
 import { ChartsSection } from "../charts/charts-section";
 import { ChangeLogTimeline } from "./change-log-timeline";
+import { TrendsTabs } from "./trends-tabs";
+import {
+  BloodworkCharts,
+  type BloodworkChart,
+  type OtherBloodworkResult,
+} from "./bloodwork-charts";
 
 export default async function TrendsPage({
   params,
@@ -92,6 +98,102 @@ export default async function TrendsPage({
     observationsBySymptom[o.symptom_key] = list;
   }
 
+  const { data: bloodworkFiles } = await supabase
+    .from("bloodwork_files")
+    .select("id, taken_at, created_at")
+    .eq("pet_id", petId);
+
+  const fileDateById = new Map(
+    (bloodworkFiles ?? []).map((f) => [f.id, f.taken_at ?? f.created_at.slice(0, 10)])
+  );
+  const bloodworkFileIds = (bloodworkFiles ?? []).map((f) => f.id);
+
+  const { data: bloodworkResults } =
+    bloodworkFileIds.length > 0
+      ? await supabase
+          .from("bloodwork_results")
+          .select("bloodwork_file_id, test_name, value, unit, reference_range, flag")
+          .in("bloodwork_file_id", bloodworkFileIds)
+      : {
+          data: [] as {
+            bloodwork_file_id: string;
+            test_name: string;
+            value: string;
+            unit: string | null;
+            reference_range: string | null;
+            flag: string | null;
+          }[],
+        };
+
+  type LabPoint = {
+    date: string;
+    rawValue: string;
+    numericValue: number | null;
+    unit: string | null;
+    flag: string | null;
+  };
+  const labGroups = new Map<
+    string,
+    { displayName: string; unit: string | null; points: LabPoint[] }
+  >();
+  for (const r of bloodworkResults ?? []) {
+    const date = fileDateById.get(r.bloodwork_file_id);
+    if (!date) continue;
+    const key = r.test_name.trim().toLowerCase();
+    const numMatch = r.value.match(/-?\d+(\.\d+)?/);
+    const group = labGroups.get(key) ?? {
+      displayName: r.test_name.trim(),
+      unit: r.unit,
+      points: [],
+    };
+    group.displayName = r.test_name.trim();
+    group.unit = group.unit ?? r.unit;
+    group.points.push({
+      date,
+      rawValue: r.value,
+      numericValue: numMatch ? Number(numMatch[0]) : null,
+      unit: r.unit,
+      flag: r.flag,
+    });
+    labGroups.set(key, group);
+  }
+  for (const group of labGroups.values()) {
+    group.points.sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  // Charting every distinct lab test would be overwhelming, so only trend
+  // tests that have (a) enough numeric data points to show a real trend and
+  // (b) been flagged abnormal at least once — the rest still surface as a
+  // compact "latest value" list so nothing's hidden.
+  const bloodworkCharts: BloodworkChart[] = [];
+  const otherBloodworkResults: OtherBloodworkResult[] = [];
+  for (const group of labGroups.values()) {
+    const numericPoints = group.points.filter((p) => p.numericValue != null);
+    const hasAbnormal = group.points.some((p) => p.flag && p.flag !== "normal");
+    if (numericPoints.length >= 2 && hasAbnormal) {
+      bloodworkCharts.push({
+        testName: group.displayName,
+        unit: group.unit,
+        data: numericPoints.map((p) => ({
+          date: p.date,
+          value: p.numericValue as number,
+          flag: p.flag,
+        })),
+      });
+    } else {
+      const latest = group.points[group.points.length - 1];
+      otherBloodworkResults.push({
+        testName: group.displayName,
+        latestValue: latest.rawValue,
+        unit: latest.unit,
+        flag: latest.flag,
+        date: latest.date,
+      });
+    }
+  }
+  bloodworkCharts.sort((a, b) => a.testName.localeCompare(b.testName));
+  otherBloodworkResults.sort((a, b) => a.testName.localeCompare(b.testName));
+
   const mealLabels = Object.fromEntries(
     (feedingSchedules ?? []).map((s) => [s.id, s.label])
   );
@@ -170,12 +272,19 @@ export default async function TrendsPage({
         stats={{ latestWeight, foodIntake, medAdherence, demeanorDaysLogged }}
       />
 
-      <ChartsSection
-        feedingLogs={feedingLogs ?? []}
-        mealLabels={mealLabels}
-        weightLogs={weightLogs ?? []}
-        activeSymptomKeys={activeSymptomKeys}
-        observationsBySymptom={observationsBySymptom}
+      <TrendsTabs
+        behavioral={
+          <ChartsSection
+            feedingLogs={feedingLogs ?? []}
+            mealLabels={mealLabels}
+            weightLogs={weightLogs ?? []}
+            activeSymptomKeys={activeSymptomKeys}
+            observationsBySymptom={observationsBySymptom}
+          />
+        }
+        medical={
+          <BloodworkCharts charts={bloodworkCharts} otherResults={otherBloodworkResults} />
+        }
       />
       <ChangeLogTimeline petId={petId} entries={changeLogEntries ?? []} />
     </div>
