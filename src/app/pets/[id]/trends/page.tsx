@@ -10,6 +10,22 @@ import {
   type OtherBloodworkTest,
 } from "./bloodwork-charts";
 
+// Different bloodwork reports format the same test name inconsistently
+// ("BUN:Creatinine Ratio" vs "BUN: Creatinine Ratio", "Bilirubin (Urine)" vs
+// "Urine Bilirubin"), which would otherwise split one test's history into
+// separate rows. Stripping punctuation and sorting words makes the grouping
+// key insensitive to spacing and word order.
+function labTestKey(name: string) {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .split(" ")
+    .filter(Boolean)
+    .sort()
+    .join(" ");
+}
+
 export default async function TrendsPage({
   params,
 }: {
@@ -140,14 +156,20 @@ export default async function TrendsPage({
   for (const r of bloodworkResults ?? []) {
     const date = fileDateById.get(r.bloodwork_file_id);
     if (!date) continue;
-    const key = r.test_name.trim().toLowerCase();
+    const testName = r.test_name.trim();
+    const key = labTestKey(testName);
     const numMatch = r.value.match(/-?\d+(\.\d+)?/);
     const group = labGroups.get(key) ?? {
-      displayName: r.test_name.trim(),
+      displayName: testName,
       unit: r.unit,
       points: [],
     };
-    group.displayName = r.test_name.trim();
+    // Prefer whichever formatting includes a parenthetical qualifier (e.g.
+    // "Bilirubin (Urine)" over "Urine Bilirubin") since that's the
+    // convention most of these reports use.
+    if (!group.displayName.includes("(") && testName.includes("(")) {
+      group.displayName = testName;
+    }
     group.unit = group.unit ?? r.unit;
     group.points.push({
       date,
