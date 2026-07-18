@@ -64,6 +64,36 @@ const EXTRACTION_TOOL = {
   },
 };
 
+// The model doesn't always follow the schema exactly (e.g. "12.7" as a
+// string, or "lbs"/"pounds" instead of the enum value) — normalize instead
+// of rejecting, and log when something's present but still doesn't resolve
+// so a real extraction gap is visible rather than silently becoming null.
+function parseWeight(raw: unknown): { value: number; unit: "lb" | "kg" } | null {
+  if (raw === undefined || raw === null) return null;
+  const rawObj = raw as { value?: unknown; unit?: unknown };
+
+  const numericValue =
+    typeof rawObj.value === "number"
+      ? rawObj.value
+      : typeof rawObj.value === "string"
+        ? Number(rawObj.value.replace(/[^0-9.]/g, ""))
+        : NaN;
+
+  const unitText = typeof rawObj.unit === "string" ? rawObj.unit.trim().toLowerCase() : "";
+  const unit: "lb" | "kg" | null = unitText.startsWith("kg")
+    ? "kg"
+    : unitText.startsWith("lb") || unitText.startsWith("pound")
+      ? "lb"
+      : null;
+
+  if (Number.isFinite(numericValue) && numericValue > 0 && unit) {
+    return { value: numericValue, unit };
+  }
+
+  console.error("parseBloodworkFile: weight present but unparseable", raw);
+  return null;
+}
+
 // Best-effort: returns null if there's no API key configured or the model
 // call/parse fails for any reason. Callers treat null as "couldn't parse"
 // rather than throwing, since a bloodwork upload should still succeed even
@@ -162,15 +192,7 @@ export async function parseBloodworkFile(
       ];
     });
 
-    const rawWeight = input.weight as { value?: unknown; unit?: unknown } | undefined;
-    const weight =
-      rawWeight &&
-      typeof rawWeight.value === "number" &&
-      Number.isFinite(rawWeight.value) &&
-      rawWeight.value > 0 &&
-      (rawWeight.unit === "lb" || rawWeight.unit === "kg")
-        ? { value: rawWeight.value, unit: rawWeight.unit as "lb" | "kg" }
-        : null;
+    const weight = parseWeight(input.weight);
 
     return { summary: input.summary, results, weight };
   } catch (err) {
