@@ -79,11 +79,21 @@ export async function generatePetSynopsis(dataSummary: string): Promise<PetSynop
       prognosis?: unknown;
       suggestions?: unknown;
     };
+
+    // The model occasionally returns suggestions as a single string instead
+    // of an array of strings despite the schema — accept either shape
+    // rather than discarding an otherwise-good synopsis over it.
+    const suggestions = Array.isArray(input.suggestions)
+      ? input.suggestions.filter((s): s is string => typeof s === "string")
+      : typeof input.suggestions === "string"
+        ? [input.suggestions]
+        : null;
+
     if (
       typeof input.current_state !== "string" ||
       typeof input.trend !== "string" ||
       typeof input.prognosis !== "string" ||
-      !Array.isArray(input.suggestions)
+      suggestions === null
     ) {
       console.error("generatePetSynopsis: malformed tool input", input);
       return null;
@@ -93,7 +103,7 @@ export async function generatePetSynopsis(dataSummary: string): Promise<PetSynop
       currentState: input.current_state,
       trend: input.trend,
       prognosis: input.prognosis,
-      suggestions: input.suggestions.filter((s): s is string => typeof s === "string"),
+      suggestions,
     };
   } catch (err) {
     console.error("generatePetSynopsis failed:", err);
