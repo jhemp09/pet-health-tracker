@@ -80,11 +80,13 @@ function BloodworkResults({ file, petId }: { file: FileEntry; petId: string }) {
     );
   }
 
-  if (file.parse_status === "failed") {
+  if (file.parse_status === "failed" || file.parse_status === "pending") {
     return (
       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
         <span className="min-w-0 break-words">
-          Automatic lab result parsing didn&apos;t work for this file.
+          {file.parse_status === "failed"
+            ? "Automatic lab result parsing didn't work for this file."
+            : "This file hasn't been scanned for lab values yet."}
         </span>
         <button
           type="button"
@@ -92,7 +94,11 @@ function BloodworkResults({ file, petId }: { file: FileEntry; petId: string }) {
           onClick={() => startTransition(() => retryParseBloodwork(petId, file.id))}
           className="shrink-0 text-blue-600 underline disabled:opacity-50"
         >
-          {isPending ? "Retrying…" : "Retry"}
+          {isPending
+            ? "Scanning…"
+            : file.parse_status === "failed"
+              ? "Retry"
+              : "Scan for lab values"}
         </button>
       </div>
     );
