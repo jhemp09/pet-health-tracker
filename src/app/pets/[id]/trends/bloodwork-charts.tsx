@@ -108,7 +108,7 @@ function OtherResultsTable({ tests }: { tests: OtherBloodworkTest[] }) {
               {allDates.map((date) => (
                 <th
                   key={date}
-                  className="whitespace-nowrap px-2 py-1.5 text-right font-medium text-gray-700"
+                  className="w-14 max-w-14 break-words px-2 py-1.5 text-right font-medium text-gray-700"
                 >
                   {date}
                 </th>
@@ -135,7 +135,7 @@ function OtherResultsTable({ tests }: { tests: OtherBloodworkTest[] }) {
                     return (
                       <td
                         key={date}
-                        className="whitespace-nowrap px-2 py-1.5 text-right"
+                        className="w-14 max-w-14 break-words px-2 py-1.5 text-right"
                         style={
                           isAbnormal
                             ? { color: FLAG_COLOR[p!.flag as string], fontWeight: 600 }
