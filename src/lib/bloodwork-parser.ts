@@ -122,14 +122,23 @@ export async function parseBloodworkFile(
     const toolUse = message.content.find(
       (block): block is Anthropic.ToolUseBlock => block.type === "tool_use"
     );
-    if (!toolUse) return null;
+    if (!toolUse) {
+      console.error("parseBloodworkFile: no tool_use block", {
+        stopReason: message.stop_reason,
+        content: message.content,
+      });
+      return null;
+    }
 
     const input = toolUse.input as {
       summary?: string;
       results?: unknown[];
       weight?: unknown;
     };
-    if (!input.summary || !Array.isArray(input.results)) return null;
+    if (!input.summary || !Array.isArray(input.results)) {
+      console.error("parseBloodworkFile: malformed tool input", input);
+      return null;
+    }
 
     const results: ParsedBloodworkResult[] = input.results.flatMap((raw) => {
       if (typeof raw !== "object" || raw === null) return [];
@@ -164,7 +173,8 @@ export async function parseBloodworkFile(
         : null;
 
     return { summary: input.summary, results, weight };
-  } catch {
+  } catch (err) {
+    console.error("parseBloodworkFile failed:", err);
     return null;
   }
 }

@@ -38,6 +38,7 @@ async function runBloodworkParse(
     .download(storagePath);
 
   if (downloadError || !blob) {
+    console.error("runBloodworkParse: storage download failed", fileId, downloadError);
     await supabase.from("bloodwork_files").update({ parse_status: "failed" }).eq("id", fileId);
     return;
   }
@@ -46,6 +47,7 @@ async function runBloodworkParse(
   const parsed = await parseBloodworkFile(bytes, mimeType);
 
   if (!parsed) {
+    console.error("runBloodworkParse: parseBloodworkFile returned null for file", fileId, mimeType, bytes.length);
     await supabase.from("bloodwork_files").update({ parse_status: "failed" }).eq("id", fileId);
     return;
   }
