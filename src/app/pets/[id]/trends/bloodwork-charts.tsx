@@ -11,17 +11,20 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+export type SampleType = "blood" | "urine";
 export type BloodworkChartPoint = { date: string; value: number; flag: string | null };
 export type BloodworkChart = {
   testName: string;
   unit: string | null;
   referenceRange: string | null;
+  sampleType: SampleType;
   data: BloodworkChartPoint[];
 };
 export type OtherBloodworkTest = {
   testName: string;
   unit: string | null;
   referenceRange: string | null;
+  sampleType: SampleType;
   points: { date: string; value: string; flag: string | null }[];
 };
 
@@ -156,29 +159,25 @@ function OtherResultsTable({ tests }: { tests: OtherBloodworkTest[] }) {
   );
 }
 
-export function BloodworkCharts({
+function SampleTypeSection({
+  title,
   charts,
-  otherResults,
+  otherTests,
 }: {
+  title: string;
   charts: BloodworkChart[];
-  otherResults: OtherBloodworkTest[];
+  otherTests: OtherBloodworkTest[];
 }) {
-  if (charts.length === 0 && otherResults.length === 0) {
-    return (
-      <p className="text-sm text-gray-500">
-        No bloodwork results yet — upload a file on the Medical tab to get started.
-      </p>
-    );
-  }
+  if (charts.length === 0 && otherTests.length === 0) return null;
 
   return (
-    <section className="flex flex-col gap-8">
-      <h2 className="font-medium">Trends</h2>
+    <div className="flex flex-col gap-6 border-t border-gray-100 pt-6 first:border-0 first:pt-0">
+      <h3 className="text-base font-semibold text-gray-900">{title}</h3>
 
       {charts.length === 0 ? (
         <p className="text-sm text-gray-500">
-          No test has had an abnormal result across 2+ bloodwork uploads yet, so there&apos;s
-          nothing to trend. Latest values are below.
+          No {title.toLowerCase()} test has had an abnormal result across 2+ bloodwork uploads
+          yet, so there&apos;s nothing to trend. Latest values are below.
         </p>
       ) : (
         charts.map((chart) => {
@@ -267,7 +266,40 @@ export function BloodworkCharts({
         })
       )}
 
-      {otherResults.length > 0 && <OtherResultsTable tests={otherResults} />}
+      {otherTests.length > 0 && <OtherResultsTable tests={otherTests} />}
+    </div>
+  );
+}
+
+export function BloodworkCharts({
+  charts,
+  otherResults,
+}: {
+  charts: BloodworkChart[];
+  otherResults: OtherBloodworkTest[];
+}) {
+  if (charts.length === 0 && otherResults.length === 0) {
+    return (
+      <p className="text-sm text-gray-500">
+        No bloodwork results yet — upload a file on the Medical tab to get started.
+      </p>
+    );
+  }
+
+  return (
+    <section className="flex flex-col gap-8">
+      <h2 className="font-medium">Trends</h2>
+
+      <SampleTypeSection
+        title="Blood"
+        charts={charts.filter((c) => c.sampleType === "blood")}
+        otherTests={otherResults.filter((t) => t.sampleType === "blood")}
+      />
+      <SampleTypeSection
+        title="Urine"
+        charts={charts.filter((c) => c.sampleType === "urine")}
+        otherTests={otherResults.filter((t) => t.sampleType === "urine")}
+      />
     </section>
   );
 }

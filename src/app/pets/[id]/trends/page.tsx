@@ -26,6 +26,33 @@ function labTestKey(name: string) {
     .join(" ");
 }
 
+// Most urine-panel tests get labeled "X (Urine)" by the extraction, which
+// labTestKey turns into a key containing the word "urine". A handful of
+// standard urinalysis parameters (dipstick/sediment readings) don't carry
+// any "urine" wording of their own, so they're listed explicitly here.
+const URINE_ONLY_NAMES = [
+  "Blood / Hemoglobin",
+  "Color",
+  "Clarity",
+  "Specific Gravity",
+  "pH",
+  "Ketones",
+  "Bacteria",
+  "Casts",
+  "Crystals",
+  "Epithelial Cells",
+  "Mucus",
+  "Urobilinogen",
+  "Collection",
+  "Collection Method",
+];
+const URINE_ONLY_KEYS = new Set(URINE_ONLY_NAMES.map(labTestKey));
+
+function sampleTypeFor(key: string): "blood" | "urine" {
+  if (key.split(" ").includes("urine") || URINE_ONLY_KEYS.has(key)) return "urine";
+  return "blood";
+}
+
 export default async function TrendsPage({
   params,
 }: {
@@ -191,15 +218,17 @@ export default async function TrendsPage({
   // compact "latest value" list so nothing's hidden.
   const bloodworkCharts: BloodworkChart[] = [];
   const otherBloodworkResults: OtherBloodworkTest[] = [];
-  for (const group of labGroups.values()) {
+  for (const [key, group] of labGroups.entries()) {
     const numericPoints = group.points.filter((p) => p.numericValue != null);
     const hasAbnormal = group.points.some((p) => p.flag && p.flag !== "normal");
     const latestWithRange = [...group.points].reverse().find((p) => p.referenceRange);
+    const sampleType = sampleTypeFor(key);
     if (numericPoints.length >= 2 && hasAbnormal) {
       bloodworkCharts.push({
         testName: group.displayName,
         unit: group.unit,
         referenceRange: latestWithRange?.referenceRange ?? null,
+        sampleType,
         data: numericPoints.map((p) => ({
           date: p.date,
           value: p.numericValue as number,
@@ -211,6 +240,7 @@ export default async function TrendsPage({
         testName: group.displayName,
         unit: group.unit,
         referenceRange: latestWithRange?.referenceRange ?? null,
+        sampleType,
         points: group.points.map((p) => ({
           date: p.date,
           value: p.rawValue,
