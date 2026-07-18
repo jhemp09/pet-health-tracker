@@ -102,7 +102,7 @@ function OtherResultsTable({ tests }: { tests: OtherBloodworkTest[] }) {
         <table className="w-full min-w-max border-collapse text-xs">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
-              <th className="sticky left-0 z-10 whitespace-nowrap border-r border-gray-200 bg-gray-50 px-2 py-1.5 text-left font-medium text-gray-700">
+              <th className="sticky left-0 z-10 w-24 max-w-24 border-r border-gray-200 bg-gray-50 px-2 py-1.5 text-left font-medium text-gray-700">
                 Test
               </th>
               {allDates.map((date) => (
@@ -120,7 +120,7 @@ function OtherResultsTable({ tests }: { tests: OtherBloodworkTest[] }) {
               const byDate = new Map(t.points.map((p) => [p.date, p]));
               return (
                 <tr key={t.testName} className="border-b border-gray-100 last:border-0">
-                  <td className="sticky left-0 z-10 whitespace-nowrap border-r border-gray-200 bg-white px-2 py-1.5 text-gray-700">
+                  <td className="sticky left-0 z-10 w-24 max-w-24 break-words border-r border-gray-200 bg-white px-2 py-1.5 text-gray-700">
                     {t.testName}
                     {t.unit ? ` (${t.unit})` : ""}
                     {t.referenceRange && (
