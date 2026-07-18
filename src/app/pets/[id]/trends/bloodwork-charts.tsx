@@ -159,16 +159,16 @@ function OtherResultsTable({ tests }: { tests: OtherBloodworkTest[] }) {
   );
 }
 
-function SampleTypeSection({
+function ChartsForType({
   title,
   charts,
-  otherTests,
+  hasOtherData,
 }: {
   title: string;
   charts: BloodworkChart[];
-  otherTests: OtherBloodworkTest[];
+  hasOtherData: boolean;
 }) {
-  if (charts.length === 0 && otherTests.length === 0) return null;
+  if (charts.length === 0 && !hasOtherData) return null;
 
   return (
     <div className="flex flex-col gap-6 border-t border-gray-100 pt-6 first:border-0 first:pt-0">
@@ -265,8 +265,17 @@ function SampleTypeSection({
           );
         })
       )}
+    </div>
+  );
+}
 
-      {otherTests.length > 0 && <OtherResultsTable tests={otherTests} />}
+function TableForType({ title, tests }: { title: string; tests: OtherBloodworkTest[] }) {
+  if (tests.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-2 border-t border-gray-100 pt-6 first:border-0 first:pt-0">
+      <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+      <OtherResultsTable tests={tests} />
     </div>
   );
 }
@@ -286,20 +295,20 @@ export function BloodworkCharts({
     );
   }
 
+  const bloodCharts = charts.filter((c) => c.sampleType === "blood");
+  const urineCharts = charts.filter((c) => c.sampleType === "urine");
+  const bloodOther = otherResults.filter((t) => t.sampleType === "blood");
+  const urineOther = otherResults.filter((t) => t.sampleType === "urine");
+
   return (
     <section className="flex flex-col gap-8">
       <h2 className="font-medium">Trends</h2>
 
-      <SampleTypeSection
-        title="Blood"
-        charts={charts.filter((c) => c.sampleType === "blood")}
-        otherTests={otherResults.filter((t) => t.sampleType === "blood")}
-      />
-      <SampleTypeSection
-        title="Urine"
-        charts={charts.filter((c) => c.sampleType === "urine")}
-        otherTests={otherResults.filter((t) => t.sampleType === "urine")}
-      />
+      <ChartsForType title="Blood" charts={bloodCharts} hasOtherData={bloodOther.length > 0} />
+      <ChartsForType title="Urine" charts={urineCharts} hasOtherData={urineOther.length > 0} />
+
+      <TableForType title="Blood" tests={bloodOther} />
+      <TableForType title="Urine" tests={urineOther} />
     </section>
   );
 }

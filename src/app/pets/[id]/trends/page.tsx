@@ -16,7 +16,7 @@ import {
 // separate rows. Stripping punctuation and sorting words makes the grouping
 // key insensitive to spacing and word order.
 function labTestKey(name: string) {
-  return name
+  const key = name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim()
@@ -24,6 +24,10 @@ function labTestKey(name: string) {
     .filter(Boolean)
     .sort()
     .join(" ");
+  // The unqualified "Other" catch-all field in these reports is actually
+  // part of the urinalysis panel, same as "Other (Urine)" — merge them.
+  if (key === "other") return "other urine";
+  return key;
 }
 
 // Most urine-panel tests get labeled "X (Urine)" by the extraction, which
