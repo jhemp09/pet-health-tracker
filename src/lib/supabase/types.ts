@@ -248,6 +248,7 @@ export interface Database {
           unit: "lb" | "kg";
           logged_at: string;
           notes: string | null;
+          bloodwork_file_id: string | null;
         };
         Insert: {
           pet_id: string;
@@ -256,6 +257,7 @@ export interface Database {
           unit?: "lb" | "kg";
           logged_at?: string;
           notes?: string | null;
+          bloodwork_file_id?: string | null;
         };
         Update: {
           weight?: number;

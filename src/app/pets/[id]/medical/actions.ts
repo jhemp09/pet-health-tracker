@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { logChangeEvent } from "@/lib/change-log";
 import { parseBloodworkFile } from "@/lib/bloodwork-parser";
+import { localNoonInstant } from "@/lib/dates";
 
 function guessMimeType(fileName: string, fileType: "image" | "pdf") {
   if (fileType === "pdf") return "application/pdf";
@@ -54,6 +55,37 @@ async function runBloodworkParse(
     await supabase
       .from("bloodwork_results")
       .insert(parsed.results.map((r) => ({ bloodwork_file_id: fileId, ...r })));
+  }
+
+  // A re-parse/retry should replace this file's own weight entry rather
+  // than adding a duplicate each time.
+  await supabase.from("weight_logs").delete().eq("bloodwork_file_id", fileId);
+  if (parsed.weight) {
+    const [{ data: fileRow }, { data: userData }] = await Promise.all([
+      supabase
+        .from("bloodwork_files")
+        .select("pet_id, taken_at, created_at, pets(households(timezone))")
+        .eq("id", fileId)
+        .maybeSingle(),
+      supabase.auth.getUser(),
+    ]);
+    const user = userData.user;
+    if (fileRow && user) {
+      const timezone =
+        (
+          fileRow.pets as unknown as { households: { timezone: string } | null } | null
+        )?.households?.timezone ?? "UTC";
+      const dateStr = fileRow.taken_at ?? fileRow.created_at.slice(0, 10);
+      await supabase.from("weight_logs").insert({
+        pet_id: fileRow.pet_id,
+        logged_by: user.id,
+        weight: parsed.weight.value,
+        unit: parsed.weight.unit,
+        logged_at: localNoonInstant(timezone, dateStr).toISOString(),
+        notes: "From bloodwork upload",
+        bloodwork_file_id: fileId,
+      });
+    }
   }
 
   await supabase

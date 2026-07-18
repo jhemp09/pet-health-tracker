@@ -11,6 +11,7 @@ export type ParsedBloodworkResult = {
 export type ParsedBloodwork = {
   summary: string;
   results: ParsedBloodworkResult[];
+  weight: { value: number; unit: "lb" | "kg" } | null;
 };
 
 const SUPPORTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"] as const;
@@ -47,6 +48,16 @@ const EXTRACTION_TOOL = {
           },
           required: ["test_name", "value"],
         },
+      },
+      weight: {
+        type: "object" as const,
+        description:
+          "The patient's body weight recorded on this report, if shown (many vet lab reports include it). Omit this field entirely if no weight appears.",
+        properties: {
+          value: { type: "number" as const, description: "The weight as a plain number." },
+          unit: { type: "string" as const, enum: ["lb", "kg"] },
+        },
+        required: ["value", "unit"],
       },
     },
     required: ["summary", "results"],
@@ -113,7 +124,11 @@ export async function parseBloodworkFile(
     );
     if (!toolUse) return null;
 
-    const input = toolUse.input as { summary?: string; results?: unknown[] };
+    const input = toolUse.input as {
+      summary?: string;
+      results?: unknown[];
+      weight?: unknown;
+    };
     if (!input.summary || !Array.isArray(input.results)) return null;
 
     const results: ParsedBloodworkResult[] = input.results.flatMap((raw) => {
@@ -138,7 +153,17 @@ export async function parseBloodworkFile(
       ];
     });
 
-    return { summary: input.summary, results };
+    const rawWeight = input.weight as { value?: unknown; unit?: unknown } | undefined;
+    const weight =
+      rawWeight &&
+      typeof rawWeight.value === "number" &&
+      Number.isFinite(rawWeight.value) &&
+      rawWeight.value > 0 &&
+      (rawWeight.unit === "lb" || rawWeight.unit === "kg")
+        ? { value: rawWeight.value, unit: rawWeight.unit as "lb" | "kg" }
+        : null;
+
+    return { summary: input.summary, results, weight };
   } catch {
     return null;
   }
