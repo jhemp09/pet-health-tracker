@@ -291,9 +291,12 @@ export async function generateSynopsis(petId: string) {
   });
 
   const result = await generatePetSynopsis(summary);
-  if (!result) return;
+  if (!result) {
+    console.error("generateSynopsis: generatePetSynopsis returned null for pet", petId);
+    return;
+  }
 
-  await supabase.from("pet_synopses").upsert(
+  const { error: upsertError } = await supabase.from("pet_synopses").upsert(
     {
       pet_id: petId,
       current_state: result.currentState,
@@ -304,6 +307,9 @@ export async function generateSynopsis(petId: string) {
     },
     { onConflict: "pet_id" }
   );
+  if (upsertError) {
+    console.error("generateSynopsis: pet_synopses upsert failed:", upsertError);
+  }
 
   revalidatePath(`/pets/${petId}/trends`);
 }

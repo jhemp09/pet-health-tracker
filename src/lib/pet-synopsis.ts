@@ -68,7 +68,10 @@ export async function generatePetSynopsis(dataSummary: string): Promise<PetSynop
     const toolUse = message.content.find(
       (block): block is Anthropic.ToolUseBlock => block.type === "tool_use"
     );
-    if (!toolUse) return null;
+    if (!toolUse) {
+      console.error("generatePetSynopsis: no tool_use block in response", message.content);
+      return null;
+    }
 
     const input = toolUse.input as {
       current_state?: unknown;
@@ -82,6 +85,7 @@ export async function generatePetSynopsis(dataSummary: string): Promise<PetSynop
       typeof input.prognosis !== "string" ||
       !Array.isArray(input.suggestions)
     ) {
+      console.error("generatePetSynopsis: malformed tool input", input);
       return null;
     }
 
@@ -91,7 +95,8 @@ export async function generatePetSynopsis(dataSummary: string): Promise<PetSynop
       prognosis: input.prognosis,
       suggestions: input.suggestions.filter((s): s is string => typeof s === "string"),
     };
-  } catch {
+  } catch (err) {
+    console.error("generatePetSynopsis failed:", err);
     return null;
   }
 }
