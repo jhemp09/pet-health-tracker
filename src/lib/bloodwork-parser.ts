@@ -132,7 +132,7 @@ export async function parseBloodworkFile(
 
     const message = await client.messages.create({
       model: "claude-sonnet-5",
-      max_tokens: 4096,
+      max_tokens: 8192,
       messages: [
         {
           role: "user",
@@ -160,11 +160,28 @@ export async function parseBloodworkFile(
       return null;
     }
 
-    const input = toolUse.input as {
+    let input = toolUse.input as {
       summary?: string;
-      results?: unknown[];
+      results?: unknown;
       weight?: unknown;
     };
+
+    // On large reports the model has occasionally packed the whole
+    // {summary, results} object as a JSON *string* into the "results"
+    // field instead of splitting it into proper top-level properties —
+    // likely a formatting slip on bigger tool calls. Recover it rather
+    // than discarding an otherwise-successful extraction.
+    if (!input.summary && typeof input.results === "string") {
+      try {
+        const reparsed = JSON.parse(input.results);
+        if (reparsed && typeof reparsed === "object") {
+          input = reparsed as typeof input;
+        }
+      } catch {
+        // leave input as-is; the check below will fail and log it
+      }
+    }
+
     if (!input.summary || !Array.isArray(input.results)) {
       console.error("parseBloodworkFile: malformed tool input", input);
       return null;
