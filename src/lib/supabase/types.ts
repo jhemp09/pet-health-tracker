@@ -368,6 +368,33 @@ export interface Database {
         };
         Relationships: [];
       };
+      pet_synopses: {
+        Row: {
+          id: string;
+          pet_id: string;
+          current_state: string;
+          trend: string;
+          prognosis: string;
+          suggestions: string[];
+          generated_at: string;
+        };
+        Insert: {
+          pet_id: string;
+          current_state: string;
+          trend: string;
+          prognosis: string;
+          suggestions: string[];
+          generated_at?: string;
+        };
+        Update: {
+          current_state?: string;
+          trend?: string;
+          prognosis?: string;
+          suggestions?: string[];
+          generated_at?: string;
+        };
+        Relationships: [];
+      };
       push_subscriptions: {
         Row: {
           id: string;

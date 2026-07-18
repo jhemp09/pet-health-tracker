@@ -9,6 +9,12 @@ import {
   type BloodworkChart,
   type OtherBloodworkTest,
 } from "./bloodwork-charts";
+import { SynopsisSection } from "./synopsis-section";
+
+// The synopsis generation calls out to Claude with a fair amount of
+// gathered data, which can take longer than the platform's default
+// serverless timeout.
+export const maxDuration = 60;
 
 // Different bloodwork reports format the same test name inconsistently
 // ("BUN:Creatinine Ratio" vs "BUN: Creatinine Ratio", "Bilirubin (Urine)" vs
@@ -256,6 +262,21 @@ export default async function TrendsPage({
   bloodworkCharts.sort((a, b) => a.testName.localeCompare(b.testName));
   otherBloodworkResults.sort((a, b) => a.testName.localeCompare(b.testName));
 
+  const { data: synopsisRow } = await supabase
+    .from("pet_synopses")
+    .select("current_state, trend, prognosis, suggestions, generated_at")
+    .eq("pet_id", petId)
+    .maybeSingle();
+  const synopsis = synopsisRow
+    ? {
+        currentState: synopsisRow.current_state,
+        trend: synopsisRow.trend,
+        prognosis: synopsisRow.prognosis,
+        suggestions: synopsisRow.suggestions,
+        generatedAt: synopsisRow.generated_at,
+      }
+    : null;
+
   const mealLabels = Object.fromEntries(
     (feedingSchedules ?? []).map((s) => [s.id, s.label])
   );
@@ -347,6 +368,7 @@ export default async function TrendsPage({
         medical={
           <BloodworkCharts charts={bloodworkCharts} otherResults={otherBloodworkResults} />
         }
+        synopsis={<SynopsisSection petId={petId} synopsis={synopsis} />}
       />
       <ChangeLogTimeline petId={petId} entries={changeLogEntries ?? []} />
     </div>
