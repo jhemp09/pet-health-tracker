@@ -130,6 +130,7 @@ export default async function TrendsPage({
     rawValue: string;
     numericValue: number | null;
     unit: string | null;
+    referenceRange: string | null;
     flag: string | null;
   };
   const labGroups = new Map<
@@ -153,6 +154,7 @@ export default async function TrendsPage({
       rawValue: r.value,
       numericValue: numMatch ? Number(numMatch[0]) : null,
       unit: r.unit,
+      referenceRange: r.reference_range,
       flag: r.flag,
     });
     labGroups.set(key, group);
@@ -171,9 +173,11 @@ export default async function TrendsPage({
     const numericPoints = group.points.filter((p) => p.numericValue != null);
     const hasAbnormal = group.points.some((p) => p.flag && p.flag !== "normal");
     if (numericPoints.length >= 2 && hasAbnormal) {
+      const latestWithRange = [...group.points].reverse().find((p) => p.referenceRange);
       bloodworkCharts.push({
         testName: group.displayName,
         unit: group.unit,
+        referenceRange: latestWithRange?.referenceRange ?? null,
         data: numericPoints.map((p) => ({
           date: p.date,
           value: p.numericValue as number,
@@ -186,6 +190,7 @@ export default async function TrendsPage({
         testName: group.displayName,
         latestValue: latest.rawValue,
         unit: latest.unit,
+        referenceRange: latest.referenceRange,
         flag: latest.flag,
         date: latest.date,
       });

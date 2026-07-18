@@ -1,16 +1,57 @@
 "use client";
 
-import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import {
+  LineChart,
+  Line,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ReferenceArea,
+  ResponsiveContainer,
+} from "recharts";
 
 export type BloodworkChartPoint = { date: string; value: number; flag: string | null };
-export type BloodworkChart = { testName: string; unit: string | null; data: BloodworkChartPoint[] };
+export type BloodworkChart = {
+  testName: string;
+  unit: string | null;
+  referenceRange: string | null;
+  data: BloodworkChartPoint[];
+};
 export type OtherBloodworkResult = {
   testName: string;
   latestValue: string;
   unit: string | null;
+  referenceRange: string | null;
   flag: string | null;
   date: string;
 };
+
+// Reference ranges come out of the LLM extraction as free text, e.g.
+// "10-20", "10.5 - 20.5 mg/dL", "<5", ">40". Pull out numeric bounds where
+// possible so the chart can shade normal/low/high bands.
+function parseReferenceRange(raw: string | null): { min: number | null; max: number | null } | null {
+  if (!raw) return null;
+  const rangeMatch = raw.match(/(-?\d+(?:\.\d+)?)\s*(?:-|–|—|to)\s*(-?\d+(?:\.\d+)?)/i);
+  if (rangeMatch) {
+    const a = Number(rangeMatch[1]);
+    const b = Number(rangeMatch[2]);
+    return { min: Math.min(a, b), max: Math.max(a, b) };
+  }
+  const ltMatch = raw.match(/^\s*[<≤]\s*(-?\d+(?:\.\d+)?)/);
+  if (ltMatch) return { min: null, max: Number(ltMatch[1]) };
+  const gtMatch = raw.match(/^\s*[>≥]\s*(-?\d+(?:\.\d+)?)/);
+  if (gtMatch) return { min: Number(gtMatch[1]), max: null };
+  return null;
+}
+
+function FlagDot(props: { cx?: number; cy?: number; payload?: BloodworkChartPoint }) {
+  const { cx, cy, payload } = props;
+  if (cx == null || cy == null || !payload) return null;
+  const color =
+    payload.flag === "low" ? "#d97706" : payload.flag === "high" || payload.flag === "abnormal" ? "#dc2626" : "#1f2937";
+  return <circle cx={cx} cy={cy} r={3} fill={color} stroke="white" strokeWidth={1} />;
+}
 
 const FLAG_COLOR: Record<string, string> = {
   low: "#d97706",
@@ -72,27 +113,90 @@ export function BloodworkCharts({
           nothing to trend. Latest values are below.
         </p>
       ) : (
-        charts.map((chart) => (
-          <div key={chart.testName}>
-            <h3 className="mb-2 text-sm font-medium text-gray-700">
-              {chart.testName}
-              {chart.unit ? ` (${chart.unit})` : ""}
-            </h3>
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={chart.data}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip
-                  content={<LabTooltip unit={chart.unit} />}
-                  wrapperStyle={TOOLTIP_WRAPPER_STYLE}
-                  allowEscapeViewBox={{ x: false, y: false }}
-                />
-                <Line type="monotone" dataKey="value" stroke="#dc2626" dot={{ r: 3 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        ))
+        charts.map((chart) => {
+          const refRange = parseReferenceRange(chart.referenceRange);
+          const values = chart.data.map((d) => d.value);
+          const dataMin = Math.min(...values);
+          const dataMax = Math.max(...values);
+          const boundedMin = refRange?.min != null ? Math.min(dataMin, refRange.min) : dataMin;
+          const boundedMax = refRange?.max != null ? Math.max(dataMax, refRange.max) : dataMax;
+          const span = boundedMax - boundedMin || Math.abs(boundedMax) || 1;
+          const padding = span * 0.15;
+          const domainMin = boundedMin - padding;
+          const domainMax = boundedMax + padding;
+
+          return (
+            <div key={chart.testName}>
+              <h3 className="mb-1 text-sm font-medium text-gray-700">
+                {chart.testName}
+                {chart.unit ? ` (${chart.unit})` : ""}
+              </h3>
+              {refRange && (
+                <p className="mb-2 flex flex-wrap items-center gap-3 text-[11px] text-gray-500">
+                  <span className="flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full" style={{ background: "#16a34a" }} />
+                    Normal
+                    {refRange.min != null && refRange.max != null
+                      ? ` (${refRange.min}–${refRange.max})`
+                      : ""}
+                  </span>
+                  {refRange.min != null && (
+                    <span className="flex items-center gap-1">
+                      <span className="h-2 w-2 rounded-full" style={{ background: "#d97706" }} />
+                      Low
+                    </span>
+                  )}
+                  {refRange.max != null && (
+                    <span className="flex items-center gap-1">
+                      <span className="h-2 w-2 rounded-full" style={{ background: "#dc2626" }} />
+                      High
+                    </span>
+                  )}
+                </p>
+              )}
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={chart.data}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                  <YAxis domain={[domainMin, domainMax]} tick={{ fontSize: 11 }} />
+                  {refRange?.min != null && refRange?.max != null && (
+                    <ReferenceArea
+                      y1={refRange.min}
+                      y2={refRange.max}
+                      fill="#16a34a"
+                      fillOpacity={0.12}
+                      strokeOpacity={0}
+                    />
+                  )}
+                  {refRange?.min != null && (
+                    <ReferenceArea
+                      y1={domainMin}
+                      y2={refRange.min}
+                      fill="#d97706"
+                      fillOpacity={0.08}
+                      strokeOpacity={0}
+                    />
+                  )}
+                  {refRange?.max != null && (
+                    <ReferenceArea
+                      y1={refRange.max}
+                      y2={domainMax}
+                      fill="#dc2626"
+                      fillOpacity={0.08}
+                      strokeOpacity={0}
+                    />
+                  )}
+                  <Tooltip
+                    content={<LabTooltip unit={chart.unit} />}
+                    wrapperStyle={TOOLTIP_WRAPPER_STYLE}
+                    allowEscapeViewBox={{ x: false, y: false }}
+                  />
+                  <Line type="monotone" dataKey="value" stroke="#1f2937" dot={<FlagDot />} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          );
+        })
       )}
 
       {otherResults.length > 0 && (
@@ -109,7 +213,10 @@ export function BloodworkCharts({
                 <span className="min-w-0 break-words">
                   {r.testName}: {r.latestValue}
                   {r.unit ? ` ${r.unit}` : ""}{" "}
-                  <span className="text-gray-400">({r.date})</span>
+                  <span className="text-gray-400">
+                    ({r.date}
+                    {r.referenceRange ? `, ref: ${r.referenceRange}` : ""})
+                  </span>
                 </span>
                 {r.flag && (
                   <span
