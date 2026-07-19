@@ -140,7 +140,11 @@ export async function parseBloodworkFile(
             contentBlock,
             {
               type: "text",
-              text: "Extract every lab test result from this veterinary bloodwork report and call record_bloodwork_results with the structured data.",
+              text:
+                "Extract every lab test result from this veterinary bloodwork report. Also check " +
+                "the patient info / header area of the report (not just the lab values table) for " +
+                "the patient's body weight, and include it in the weight field if it's shown anywhere " +
+                "on the report. Then call record_bloodwork_results with the structured data.",
             },
           ],
         },
