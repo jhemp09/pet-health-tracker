@@ -25,16 +25,13 @@ type BloodworkResultRow = {
 };
 type ChangeLogEntry = { event_date: string; category: string; description: string };
 
-// Known standing diagnoses to give the model as context so it can assess
-// whether the tracked data is consistent with expected progression versus
-// something that doesn't fit and might indicate a separate problem.
-const KNOWN_DIAGNOSES = "Chronic kidney disease (CKD), based on bloodwork history.";
-
 function buildDataSummary(data: {
   name: string;
   species: string;
   breed: string | null;
   age: string;
+  diagnoses: string[];
+  medicalNotes: string | null;
   weightLogs: WeightLog[];
   feedingLogs: FeedingLog[];
   activeSymptomKeys: string[];
@@ -47,7 +44,8 @@ function buildDataSummary(data: {
 
   lines.push(
     `Pet: ${data.name}, ${data.species}${data.breed ? `, ${data.breed}` : ""}, age ${data.age}.`,
-    `Known diagnoses: ${KNOWN_DIAGNOSES}`,
+    `Known diagnoses: ${data.diagnoses.length > 0 ? data.diagnoses.join(", ") : "None recorded."}`,
+    `Additional owner-provided medical notes: ${data.medicalNotes ?? "None."}`,
     ""
   );
 
@@ -191,10 +189,18 @@ export async function generateSynopsis(petId: string) {
 
   const { data: pet } = await supabase
     .from("pets")
-    .select("name, species, breed, birth_date")
+    .select("name, species, breed, birth_date, medical_notes")
     .eq("id", petId)
     .maybeSingle();
   if (!pet) return;
+
+  const { data: diagnosisRows } = await supabase
+    .from("pet_diagnoses")
+    .select("diagnosis")
+    .eq("pet_id", petId);
+  const diagnoses = (diagnosisRows ?? [])
+    .map((d) => d.diagnosis.trim())
+    .filter((d) => d.length > 0);
 
   const now = new Date();
   const ninetyDaysAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
@@ -287,6 +293,8 @@ export async function generateSynopsis(petId: string) {
     species: pet.species,
     breed: pet.breed,
     age: pet.birth_date ? formatAge(pet.birth_date, now) : "unknown",
+    diagnoses,
+    medicalNotes: pet.medical_notes,
     weightLogs: weightLogs ?? [],
     feedingLogs: feedingLogs ?? [],
     activeSymptomKeys,

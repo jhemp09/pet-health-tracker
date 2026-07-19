@@ -63,6 +63,7 @@ export interface Database {
           breed: string | null;
           birth_date: string | null;
           photo_url: string | null;
+          medical_notes: string | null;
           created_at: string;
         };
         Insert: {
@@ -72,6 +73,7 @@ export interface Database {
           breed?: string | null;
           birth_date?: string | null;
           photo_url?: string | null;
+          medical_notes?: string | null;
         };
         Update: {
           name?: string;
@@ -79,6 +81,7 @@ export interface Database {
           breed?: string | null;
           birth_date?: string | null;
           photo_url?: string | null;
+          medical_notes?: string | null;
         };
         Relationships: [];
       };
@@ -367,6 +370,22 @@ export interface Database {
           unit?: string | null;
           reference_range?: string | null;
           flag?: "low" | "high" | "normal" | "abnormal" | null;
+        };
+        Relationships: [];
+      };
+      pet_diagnoses: {
+        Row: {
+          id: string;
+          pet_id: string;
+          diagnosis: string;
+          created_at: string;
+        };
+        Insert: {
+          pet_id: string;
+          diagnosis?: string;
+        };
+        Update: {
+          diagnosis?: string;
         };
         Relationships: [];
       };

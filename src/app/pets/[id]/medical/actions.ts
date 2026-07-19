@@ -195,3 +195,30 @@ export async function getBloodworkUrl(storagePath: string) {
   if (error) return null;
   return data.signedUrl;
 }
+
+export async function addDiagnosis(petId: string) {
+  const supabase = await createClient();
+  await supabase.from("pet_diagnoses").insert({ pet_id: petId });
+  revalidatePath(`/pets/${petId}/medical`);
+}
+
+export async function updateDiagnosis(petId: string, diagnosisId: string, diagnosis: string) {
+  const supabase = await createClient();
+  await supabase.from("pet_diagnoses").update({ diagnosis }).eq("id", diagnosisId);
+  revalidatePath(`/pets/${petId}/medical`);
+}
+
+export async function removeDiagnosis(petId: string, diagnosisId: string) {
+  const supabase = await createClient();
+  await supabase.from("pet_diagnoses").delete().eq("id", diagnosisId);
+  revalidatePath(`/pets/${petId}/medical`);
+}
+
+export async function updateMedicalNotes(petId: string, notes: string) {
+  const supabase = await createClient();
+  await supabase
+    .from("pets")
+    .update({ medical_notes: notes.trim() || null })
+    .eq("id", petId);
+  revalidatePath(`/pets/${petId}/medical`);
+}

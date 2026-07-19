@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
+import { diagnosisCatalogFor } from "@/lib/diagnoses";
 import { BloodworkSection } from "./bloodwork-section";
+import { DiagnosesSection } from "./diagnoses-section";
 
 // The upload action calls out to Claude to parse the file, which can take
 // longer than the platform's default serverless timeout.
@@ -12,6 +14,15 @@ export default async function BloodworkPage({
 }) {
   const { id: petId } = await params;
   const supabase = await createClient();
+
+  const [{ data: pet }, { data: diagnoses }] = await Promise.all([
+    supabase.from("pets").select("species, medical_notes").eq("id", petId).maybeSingle(),
+    supabase
+      .from("pet_diagnoses")
+      .select("id, diagnosis")
+      .eq("pet_id", petId)
+      .order("created_at", { ascending: true }),
+  ]);
 
   const { data: bloodworkFiles } = await supabase
     .from("bloodwork_files")
@@ -52,5 +63,15 @@ export default async function BloodworkPage({
     results: resultsByFile.get(f.id) ?? [],
   }));
 
-  return <BloodworkSection petId={petId} files={files} />;
+  return (
+    <div className="flex flex-col gap-8">
+      <DiagnosesSection
+        petId={petId}
+        catalog={diagnosisCatalogFor(pet?.species ?? "other")}
+        diagnoses={diagnoses ?? []}
+        medicalNotes={pet?.medical_notes ?? null}
+      />
+      <BloodworkSection petId={petId} files={files} />
+    </div>
+  );
 }

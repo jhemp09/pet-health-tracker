@@ -22,7 +22,7 @@ const SYNOPSIS_TOOL = {
       recent_changes: {
         type: "string" as const,
         description:
-          "1-3 sentences flagging anything from roughly the past week in the tracked data that is new, worsening, or otherwise stands out from her baseline — a new symptom, a sudden weight change, a fresh abnormal lab flag, an appetite shift, etc. If nothing from the past week stands out, say that explicitly rather than omitting the section.",
+          "1-3 sentences flagging anything from roughly the past week in the tracked data that is new, worsening, or otherwise stands out from the pet's baseline — a new symptom, a sudden weight change, a fresh abnormal lab flag, an appetite shift, etc. If nothing from the past week stands out, say that explicitly rather than omitting the section.",
       },
       trend: {
         type: "string" as const,
@@ -32,13 +32,13 @@ const SYNOPSIS_TOOL = {
       prognosis: {
         type: "string" as const,
         description:
-          "A specific, medically-grounded outlook given her existing diagnosis (noted in the data below). Explicitly assess whether the current data is consistent with expected progression of that diagnosis, or whether anything — a specific symptom, lab value, or trend — is inconsistent with that diagnosis alone and could point to an additional or separate problem. If something looks inconsistent, say plainly what it might suggest rather than staying vague. Still note the limits of home-tracked data and that this isn't a diagnosis, but don't let that hedge crowd out being concrete about what the data does or doesn't fit.",
+          "A specific, medically-grounded outlook. If the pet has known diagnoses (noted in the data below), explicitly assess whether the current data is consistent with expected progression of those diagnoses, or whether anything — a specific symptom, lab value, or trend — is inconsistent with them alone and could point to an additional or separate problem; say plainly what such an inconsistency might suggest rather than staying vague. If no diagnoses are recorded, reason directly from the data about what the pattern of findings suggests. Still note the limits of home-tracked data and that this isn't a diagnosis, but don't let that hedge crowd out being concrete about what the data does or doesn't fit.",
       },
       suggestions: {
         type: "array" as const,
         items: { type: "string" as const },
         description:
-          "3-6 concrete, medically specific, actionable recommendations tied to her diagnosis and the data — e.g. specific additional or repeat lab tests to ask the vet about, specific supplements or medications commonly used for her condition worth discussing, specific diet/food recommendations, or concrete monitoring changes. Avoid generic advice like 'monitor closely' or 'see your vet' on its own — name the specific test, supplement, medication class, or food type where possible.",
+          "3-6 concrete, medically specific, actionable recommendations tied to the pet's diagnoses (if any) and the data — e.g. specific additional or repeat lab tests to ask the vet about, specific supplements or medications commonly used for their condition worth discussing, specific diet/food recommendations, or concrete monitoring changes. Avoid generic advice like 'monitor closely' or 'see your vet' on its own — name the specific test, supplement, medication class, or food type where possible.",
       },
     },
     required: ["current_state", "recent_changes", "trend", "prognosis", "suggestions"],

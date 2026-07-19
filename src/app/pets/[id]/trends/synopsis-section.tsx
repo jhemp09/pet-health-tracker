@@ -36,14 +36,14 @@ export function SynopsisSection({
       </div>
 
       <p className="text-xs text-gray-500">
-        AI-generated from her tracked data. Not a substitute for veterinary advice — always
+        AI-generated from their tracked data. Not a substitute for veterinary advice — always
         follow up with your vet on anything concerning.
       </p>
 
       {!synopsis ? (
         <p className="text-sm text-gray-500">
           {isPending
-            ? "Reviewing her tracked data…"
+            ? "Reviewing tracked data…"
             : "No synopsis yet — tap Generate synopsis above."}
         </p>
       ) : (
