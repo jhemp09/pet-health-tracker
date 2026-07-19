@@ -38,7 +38,7 @@ const SYNOPSIS_TOOL = {
         type: "array" as const,
         items: { type: "string" as const },
         description:
-          "3-6 concrete, medically specific, actionable recommendations tied to the pet's diagnoses (if any) and the data — e.g. specific additional or repeat lab tests to ask the vet about, specific supplements or medications commonly used for their condition worth discussing, specific diet/food recommendations, or concrete monitoring changes. Avoid generic advice like 'monitor closely' or 'see your vet' on its own — name the specific test, supplement, medication class, or food type where possible.",
+          "3-6 concrete, medically specific, actionable recommendations tied to the pet's diagnoses (if any) and the data — e.g. specific additional or repeat lab tests to ask the vet about, specific supplements or medications commonly used for their condition worth discussing, specific diet/food recommendations, or concrete monitoring changes. Before suggesting something, check it against the MEDICATIONS and FEEDING SCHEDULE sections below — do not suggest something that's already part of the current routine. If something already in place seems relevant but isn't working well (inconsistent adherence, or the pet isn't improving despite it), say that specifically instead of suggesting it as new. Also flag if a per-medication adherence pattern (specific missed doses, specific medication) lines up with symptom timing. Avoid generic advice like 'monitor closely' or 'see your vet' on its own — name the specific test, supplement, medication class, or food type where possible.",
       },
     },
     required: ["current_state", "recent_changes", "trend", "prognosis", "suggestions"],
@@ -61,6 +61,13 @@ export async function generatePetSynopsis(dataSummary: string): Promise<PetSynop
           role: "user",
           content:
             "You are reviewing home-tracked health data for a pet, gathered by their owner through a tracking app. " +
+            "The owner's goal is to catch things their vet might miss simply for lack of time to review this much " +
+            "data in a single appointment, so use ALL of the sections below together rather than treating them " +
+            "separately — the feeding schedule/what's being fed and how often, the medication schedule and its " +
+            "per-medication adherence, the demeanor symptoms, the weight trend, and the bloodwork/urinalysis history " +
+            "all need to be cross-referenced against each other (e.g. does a missed-dose pattern for a specific " +
+            "medication line up with symptom timing; does a lab trend change around the same time as a diet or " +
+            "medication change in the change log; is a suggestion already covered by something already configured). " +
             "Based on the data below, call record_pet_synopsis with an evidence-based synopsis. Be specific and " +
             "reference the actual data where possible, and be as medically concrete and actionable as the data " +
             "supports — specific tests, medications, supplements, or diet changes rather than generic advice. " +
