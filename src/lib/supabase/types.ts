@@ -2,7 +2,7 @@
 // CLI later, this can be regenerated with `supabase gen types typescript`.
 
 export interface Database {
-  public: {
+  pet_tracker: {
     Tables: {
       households: {
         Row: {
