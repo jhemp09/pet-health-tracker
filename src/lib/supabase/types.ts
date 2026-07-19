@@ -375,6 +375,7 @@ export interface Database {
           id: string;
           pet_id: string;
           current_state: string;
+          recent_changes: string;
           trend: string;
           prognosis: string;
           suggestions: string[];
@@ -383,6 +384,7 @@ export interface Database {
         Insert: {
           pet_id: string;
           current_state: string;
+          recent_changes: string;
           trend: string;
           prognosis: string;
           suggestions: string[];
@@ -390,6 +392,7 @@ export interface Database {
         };
         Update: {
           current_state?: string;
+          recent_changes?: string;
           trend?: string;
           prognosis?: string;
           suggestions?: string[];

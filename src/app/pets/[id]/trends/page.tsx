@@ -264,12 +264,13 @@ export default async function TrendsPage({
 
   const { data: synopsisRow } = await supabase
     .from("pet_synopses")
-    .select("current_state, trend, prognosis, suggestions, generated_at")
+    .select("current_state, recent_changes, trend, prognosis, suggestions, generated_at")
     .eq("pet_id", petId)
     .maybeSingle();
   const synopsis = synopsisRow
     ? {
         currentState: synopsisRow.current_state,
+        recentChanges: synopsisRow.recent_changes,
         trend: synopsisRow.trend,
         prognosis: synopsisRow.prognosis,
         suggestions: synopsisRow.suggestions,

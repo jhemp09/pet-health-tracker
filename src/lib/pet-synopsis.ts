@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 
 export type PetSynopsis = {
   currentState: string;
+  recentChanges: string;
   trend: string;
   prognosis: string;
   suggestions: string[];
@@ -18,24 +19,29 @@ const SYNOPSIS_TOOL = {
         description:
           "2-4 sentence plain-language description of the pet's current overall condition, based only on the data provided.",
       },
+      recent_changes: {
+        type: "string" as const,
+        description:
+          "1-3 sentences flagging anything from roughly the past week in the tracked data that is new, worsening, or otherwise stands out from her baseline — a new symptom, a sudden weight change, a fresh abnormal lab flag, an appetite shift, etc. If nothing from the past week stands out, say that explicitly rather than omitting the section.",
+      },
       trend: {
         type: "string" as const,
         description:
-          "2-4 sentences on how the pet's condition has changed over the tracked period — improving, worsening, stable, or mixed — citing specific data points (dates, values, symptom frequency).",
+          "2-4 sentences on how the pet's condition has changed over the whole tracked period — improving, worsening, stable, or mixed — citing specific data points (dates, values, symptom frequency).",
       },
       prognosis: {
         type: "string" as const,
         description:
-          "A brief, appropriately hedged outlook. Do not overstate certainty, note where the data is too limited to project confidently, and recommend veterinary follow-up where relevant.",
+          "A specific, medically-grounded outlook given her existing diagnosis (noted in the data below). Explicitly assess whether the current data is consistent with expected progression of that diagnosis, or whether anything — a specific symptom, lab value, or trend — is inconsistent with that diagnosis alone and could point to an additional or separate problem. If something looks inconsistent, say plainly what it might suggest rather than staying vague. Still note the limits of home-tracked data and that this isn't a diagnosis, but don't let that hedge crowd out being concrete about what the data does or doesn't fit.",
       },
       suggestions: {
         type: "array" as const,
         items: { type: "string" as const },
         description:
-          "2-5 concrete, specific things the owner could try or bring up with their vet that are not already reflected in the current tracked routine.",
+          "3-6 concrete, medically specific, actionable recommendations tied to her diagnosis and the data — e.g. specific additional or repeat lab tests to ask the vet about, specific supplements or medications commonly used for her condition worth discussing, specific diet/food recommendations, or concrete monitoring changes. Avoid generic advice like 'monitor closely' or 'see your vet' on its own — name the specific test, supplement, medication class, or food type where possible.",
       },
     },
-    required: ["current_state", "trend", "prognosis", "suggestions"],
+    required: ["current_state", "recent_changes", "trend", "prognosis", "suggestions"],
   },
 };
 
@@ -55,9 +61,11 @@ export async function generatePetSynopsis(dataSummary: string): Promise<PetSynop
           role: "user",
           content:
             "You are reviewing home-tracked health data for a pet, gathered by their owner through a tracking app. " +
-            "Based on the data below, call record_pet_synopsis with an evidence-based synopsis. Be specific and reference " +
-            "the actual data where possible. This is not a substitute for veterinary care, so hedge appropriately and " +
-            "recommend vet follow-up where warranted rather than presenting a diagnosis.\n\n" +
+            "Based on the data below, call record_pet_synopsis with an evidence-based synopsis. Be specific and " +
+            "reference the actual data where possible, and be as medically concrete and actionable as the data " +
+            "supports — specific tests, medications, supplements, or diet changes rather than generic advice. " +
+            "This is not a substitute for veterinary care and not a diagnosis, so note the limits of home-tracked " +
+            "data and recommend vet follow-up where warranted, but don't let that caveat make the synopsis vague.\n\n" +
             dataSummary,
         },
       ],
@@ -75,6 +83,7 @@ export async function generatePetSynopsis(dataSummary: string): Promise<PetSynop
 
     const input = toolUse.input as {
       current_state?: unknown;
+      recent_changes?: unknown;
       trend?: unknown;
       prognosis?: unknown;
       suggestions?: unknown;
@@ -91,6 +100,7 @@ export async function generatePetSynopsis(dataSummary: string): Promise<PetSynop
 
     if (
       typeof input.current_state !== "string" ||
+      typeof input.recent_changes !== "string" ||
       typeof input.trend !== "string" ||
       typeof input.prognosis !== "string" ||
       suggestions === null
@@ -101,6 +111,7 @@ export async function generatePetSynopsis(dataSummary: string): Promise<PetSynop
 
     return {
       currentState: input.current_state,
+      recentChanges: input.recent_changes,
       trend: input.trend,
       prognosis: input.prognosis,
       suggestions,

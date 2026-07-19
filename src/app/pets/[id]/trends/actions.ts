@@ -25,6 +25,11 @@ type BloodworkResultRow = {
 };
 type ChangeLogEntry = { event_date: string; category: string; description: string };
 
+// Known standing diagnoses to give the model as context so it can assess
+// whether the tracked data is consistent with expected progression versus
+// something that doesn't fit and might indicate a separate problem.
+const KNOWN_DIAGNOSES = "Chronic kidney disease (CKD), based on bloodwork history.";
+
 function buildDataSummary(data: {
   name: string;
   species: string;
@@ -42,6 +47,7 @@ function buildDataSummary(data: {
 
   lines.push(
     `Pet: ${data.name}, ${data.species}${data.breed ? `, ${data.breed}` : ""}, age ${data.age}.`,
+    `Known diagnoses: ${KNOWN_DIAGNOSES}`,
     ""
   );
 
@@ -300,6 +306,7 @@ export async function generateSynopsis(petId: string) {
     {
       pet_id: petId,
       current_state: result.currentState,
+      recent_changes: result.recentChanges,
       trend: result.trend,
       prognosis: result.prognosis,
       suggestions: result.suggestions,

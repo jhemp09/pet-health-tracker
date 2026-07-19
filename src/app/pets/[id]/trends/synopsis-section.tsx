@@ -5,6 +5,7 @@ import { generateSynopsis } from "./actions";
 
 export type Synopsis = {
   currentState: string;
+  recentChanges: string;
   trend: string;
   prognosis: string;
   suggestions: string[];
@@ -53,6 +54,10 @@ export function SynopsisSection({
           <div>
             <h3 className="mb-1 text-sm font-medium text-gray-900">Current state</h3>
             <p>{synopsis.currentState}</p>
+          </div>
+          <div>
+            <h3 className="mb-1 text-sm font-medium text-gray-900">Recent changes</h3>
+            <p>{synopsis.recentChanges}</p>
           </div>
           <div>
             <h3 className="mb-1 text-sm font-medium text-gray-900">Trend</h3>
