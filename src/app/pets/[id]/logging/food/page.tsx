@@ -74,7 +74,7 @@ export default async function FeedingPage({
   type MealFood = {
     id: string;
     schedule_id: string;
-    url: string;
+    url: string | null;
     title: string | null;
     image_url: string | null;
     amount: string | null;

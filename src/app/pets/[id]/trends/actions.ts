@@ -14,7 +14,7 @@ type FeedingLog = {
   schedule_id: string | null;
 };
 type FeedingSchedule = { id: string; label: string; scheduled_time: string; active: boolean };
-type MealFood = { schedule_id: string; title: string | null; url: string };
+type MealFood = { schedule_id: string; title: string | null; url: string | null };
 type DemeanorObservation = {
   symptom_key: string;
   observed_date: string;
@@ -103,7 +103,9 @@ function buildDataSummary(data: {
     for (const s of data.feedingSchedules) {
       const foods = mealFoodsByScheduleId.get(s.id) ?? [];
       const foodText =
-        foods.length > 0 ? foods.map((f) => f.title ?? f.url).join(", ") : "no food linked";
+        foods.length > 0
+          ? foods.map((f) => f.title ?? f.url ?? "unnamed food").join(", ")
+          : "no food linked";
       lines.push(
         `- ${s.label} at ${s.scheduled_time}${s.active ? "" : " (inactive)"} — food: ${foodText}`
       );

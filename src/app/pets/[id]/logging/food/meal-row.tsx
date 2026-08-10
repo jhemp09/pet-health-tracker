@@ -9,7 +9,7 @@ import { MealFoodsList } from "./meal-foods-list";
 type LogInfo = { id: string; percent_eaten: number; notes: string | null };
 type Food = {
   id: string;
-  url: string;
+  url: string | null;
   title: string | null;
   image_url: string | null;
   amount: string | null;

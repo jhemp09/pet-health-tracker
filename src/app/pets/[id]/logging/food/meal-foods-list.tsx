@@ -5,7 +5,7 @@ import { addMealFood, removeMealFood, updateMealFood } from "./food-actions";
 
 type Food = {
   id: string;
-  url: string;
+  url: string | null;
   title: string | null;
   image_url: string | null;
   amount: string | null;
@@ -62,15 +62,8 @@ function FoodChip({
         <input
           type="url"
           name="url"
-          defaultValue={food.url}
-          placeholder="Product link"
-          className="rounded border border-gray-300 px-2 py-1"
-        />
-        <input
-          type="url"
-          name="image_url"
-          defaultValue={food.image_url ?? ""}
-          placeholder="Image URL (optional)"
+          defaultValue={food.url ?? ""}
+          placeholder="Product link (optional)"
           className="rounded border border-gray-300 px-2 py-1"
         />
         {error && <p className="text-red-700">{error}</p>}
@@ -97,30 +90,41 @@ function FoodChip({
     );
   }
 
+  const label = food.title ?? food.url ?? "Food";
+  const content = (
+    <>
+      {food.image_url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={food.image_url}
+          alt=""
+          className="h-6 w-6 rounded-full object-cover"
+        />
+      ) : (
+        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 text-[10px] text-gray-400">
+          🛒
+        </span>
+      )}
+      <span className="max-w-[10rem] truncate">
+        {food.amount ? `${food.amount} of ${label}` : label}
+      </span>
+    </>
+  );
+
   return (
     <span className="flex items-center gap-2 rounded-full border border-gray-200 py-1 pl-1 pr-2 text-xs">
-      <a
-        href={food.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex items-center gap-2 hover:opacity-70"
-      >
-        {food.image_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={food.image_url}
-            alt=""
-            className="h-6 w-6 rounded-full object-cover"
-          />
-        ) : (
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-100 text-[10px] text-gray-400">
-            🛒
-          </span>
-        )}
-        <span className="max-w-[10rem] truncate">
-          {food.amount ? `${food.amount} of ${food.title ?? food.url}` : (food.title ?? food.url)}
-        </span>
-      </a>
+      {food.url ? (
+        <a
+          href={food.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 hover:opacity-70"
+        >
+          {content}
+        </a>
+      ) : (
+        <span className="flex items-center gap-2">{content}</span>
+      )}
       {!readOnly && (
         <>
           <button
@@ -189,6 +193,7 @@ export function MealFoodsList({
               type="text"
               name="title"
               placeholder="Food name"
+              autoFocus
               className="rounded border border-gray-300 px-2 py-1"
             />
             <input
@@ -200,15 +205,7 @@ export function MealFoodsList({
             <input
               type="url"
               name="url"
-              placeholder="Product link"
-              required
-              autoFocus
-              className="rounded border border-gray-300 px-2 py-1"
-            />
-            <input
-              type="url"
-              name="image_url"
-              placeholder="Image URL (optional)"
+              placeholder="Product link (optional)"
               className="rounded border border-gray-300 px-2 py-1"
             />
             {error && <p className="text-red-700">{error}</p>}

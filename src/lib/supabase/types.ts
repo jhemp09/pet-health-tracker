@@ -138,7 +138,7 @@ export interface Database {
         Row: {
           id: string;
           schedule_id: string;
-          url: string;
+          url: string | null;
           title: string | null;
           image_url: string | null;
           amount: string | null;
@@ -146,13 +146,13 @@ export interface Database {
         };
         Insert: {
           schedule_id: string;
-          url: string;
+          url?: string | null;
           title?: string | null;
           image_url?: string | null;
           amount?: string | null;
         };
         Update: {
-          url?: string;
+          url?: string | null;
           title?: string | null;
           image_url?: string | null;
           amount?: string | null;

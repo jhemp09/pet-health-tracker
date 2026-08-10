@@ -11,33 +11,42 @@ export async function addMealFood(
   formData: FormData
 ): Promise<{ ok: boolean; error?: string }> {
   const rawUrl = String(formData.get("url") ?? "").trim();
-  if (!rawUrl) return { ok: false, error: "Enter a link" };
-
-  let parsed: URL;
-  try {
-    parsed = new URL(rawUrl);
-  } catch {
-    return { ok: false, error: "Enter a valid URL" };
-  }
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    return { ok: false, error: "Enter a valid URL" };
-  }
-
   const manualTitle = String(formData.get("title") ?? "").trim();
   const manualAmount = String(formData.get("amount") ?? "").trim();
-  const manualImageUrl = String(formData.get("image_url") ?? "").trim();
 
-  const { title: scrapedTitle, imageUrl: scrapedImageUrl } =
-    await fetchLinkPreview(parsed.toString());
-  const finalTitle = manualTitle || scrapedTitle || parsed.hostname;
+  let parsedUrl: string | null = null;
+  let scrapedTitle: string | null = null;
+  let scrapedImageUrl: string | null = null;
+  if (rawUrl) {
+    let parsed: URL;
+    try {
+      parsed = new URL(rawUrl);
+    } catch {
+      return { ok: false, error: "Enter a valid URL" };
+    }
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return { ok: false, error: "Enter a valid URL" };
+    }
+    parsedUrl = parsed.toString();
+    const preview = await fetchLinkPreview(parsedUrl);
+    scrapedTitle = preview.title;
+    scrapedImageUrl = preview.imageUrl;
+  }
+
+  if (!manualTitle && !parsedUrl) {
+    return { ok: false, error: "Enter a food name or product link" };
+  }
+
+  const finalTitle =
+    manualTitle || scrapedTitle || (parsedUrl ? new URL(parsedUrl).hostname : "Food");
 
   const supabase = await createClient();
   const { error } = await supabase.from("meal_foods").insert({
     schedule_id: scheduleId,
-    url: parsed.toString(),
+    url: parsedUrl,
     title: finalTitle,
     amount: manualAmount || null,
-    image_url: manualImageUrl || scrapedImageUrl,
+    image_url: scrapedImageUrl,
   });
   if (error) return { ok: false, error: error.message };
 
@@ -57,9 +66,9 @@ export async function addMealFood(
   return { ok: true };
 }
 
-// Manual override for a food's display name/image, used when the
-// auto-scrape in addMealFood comes back empty (many retailers, e.g.
-// Chewy's Kasada bot-detection, block server-side scraping entirely).
+// Manual override for a food's display name, used when the auto-scrape in
+// addMealFood comes back empty (many retailers, e.g. Chewy's Kasada
+// bot-detection, block server-side scraping entirely).
 export async function updateMealFood(
   petId: string,
   foodId: string,
@@ -67,19 +76,7 @@ export async function updateMealFood(
 ): Promise<{ ok: boolean; error?: string }> {
   const title = String(formData.get("title") ?? "").trim();
   const amount = String(formData.get("amount") ?? "").trim();
-  const imageUrl = String(formData.get("image_url") ?? "").trim();
   const rawUrl = String(formData.get("url") ?? "").trim();
-
-  if (imageUrl) {
-    try {
-      const parsed = new URL(imageUrl);
-      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-        return { ok: false, error: "Enter a valid image URL" };
-      }
-    } catch {
-      return { ok: false, error: "Enter a valid image URL" };
-    }
-  }
 
   let url: string | undefined;
   if (rawUrl) {
@@ -97,16 +94,19 @@ export async function updateMealFood(
   const supabase = await createClient();
   const { data: existing } = await supabase
     .from("meal_foods")
-    .select("title, amount, schedule_id, feeding_schedules(label)")
+    .select("title, url, amount, schedule_id, feeding_schedules(label)")
     .eq("id", foodId)
     .maybeSingle();
+
+  if (!title && !(url ?? existing?.url)) {
+    return { ok: false, error: "Enter a food name or product link" };
+  }
 
   const { error } = await supabase
     .from("meal_foods")
     .update({
       title: title || null,
       amount: amount || null,
-      image_url: imageUrl || null,
       ...(url ? { url } : {}),
     })
     .eq("id", foodId);
