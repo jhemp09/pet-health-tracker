@@ -79,6 +79,11 @@ export const SYMPTOM_CATALOG: SymptomDef[] = [
     label: "Sneezing/Coughing/Congestion",
     scale: { type: "relative_5" },
   },
+  {
+    key: "licking_at_mealtimes",
+    label: "Licking at Mealtimes",
+    scale: { type: "relative_5" },
+  },
 ];
 
 export function getSymptomDef(key: string): SymptomDef | undefined {
