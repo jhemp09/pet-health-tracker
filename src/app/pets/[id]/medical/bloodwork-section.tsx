@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { createClient } from "@/lib/supabase/client";
 import {
   deleteBloodworkFile,
   getBloodworkUrl,
+  registerBloodwork,
   retryParseBloodwork,
-  uploadBloodwork,
 } from "./actions";
 
 type Result = {
@@ -115,11 +116,98 @@ function BloodworkResults({ file, petId }: { file: FileEntry; petId: string }) {
   return null;
 }
 
+function UploadForm({ petId, householdId }: { petId: string; householdId: string }) {
+  const [status, setStatus] = useState<"idle" | "uploading" | "scanning">("idle");
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const file = formData.get("file");
+    if (!(file instanceof File) || file.size === 0) return;
+
+    setError(null);
+    setStatus("uploading");
+
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+    const storagePath = `${householdId}/${petId}/${crypto.randomUUID()}-${safeName}`;
+    const { error: uploadError } = await createClient()
+      .storage.from("bloodwork")
+      .upload(storagePath, file, { contentType: file.type });
+    if (uploadError) {
+      setError(`Upload failed: ${uploadError.message}`);
+      setStatus("idle");
+      return;
+    }
+
+    setStatus("scanning");
+    const result = await registerBloodwork(petId, {
+      storagePath,
+      fileName: file.name,
+      mimeType: file.type,
+      takenAt: String(formData.get("taken_at") ?? "") || null,
+      notes: String(formData.get("notes") ?? "").trim() || null,
+    });
+    setStatus("idle");
+    if (!result.ok) {
+      setError(result.error ?? "Could not save the upload");
+      return;
+    }
+    form.reset();
+  }
+
+  const busy = status !== "idle";
+
+  return (
+    <>
+      <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-2">
+        <label className="flex min-w-0 max-w-full flex-1 flex-col gap-1 text-xs">
+          File (image or PDF)
+          <input
+            type="file"
+            name="file"
+            accept="image/*,application/pdf"
+            required
+            className="w-full max-w-full text-sm"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs">
+          Date
+          <input
+            type="date"
+            name="taken_at"
+            className="rounded border border-gray-300 px-2 py-1 text-sm"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs">
+          Notes
+          <input
+            type="text"
+            name="notes"
+            className="rounded border border-gray-300 px-2 py-1 text-sm"
+          />
+        </label>
+        <button
+          type="submit"
+          disabled={busy}
+          className="rounded bg-black px-3 py-1.5 text-sm text-white disabled:opacity-50"
+        >
+          {status === "uploading" ? "Uploading…" : status === "scanning" ? "Scanning…" : "Upload"}
+        </button>
+      </form>
+      {error && <p className="mt-2 text-xs text-red-700">{error}</p>}
+    </>
+  );
+}
+
 export function BloodworkSection({
   petId,
+  householdId,
   files,
 }: {
   petId: string;
+  householdId: string;
   files: FileEntry[];
 }) {
   const [isPending, startTransition] = useTransition();
@@ -128,43 +216,7 @@ export function BloodworkSection({
     <section className="flex flex-col gap-4">
       <h2 className="font-medium">Bloodwork</h2>
       <div className="rounded border border-gray-200 p-4">
-        <form
-          action={(formData) => uploadBloodwork(petId, formData)}
-          className="flex flex-wrap items-end gap-2"
-        >
-          <label className="flex min-w-0 max-w-full flex-1 flex-col gap-1 text-xs">
-            File (image or PDF)
-            <input
-              type="file"
-              name="file"
-              accept="image/*,application/pdf"
-              required
-              className="w-full max-w-full text-sm"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-xs">
-            Date
-            <input
-              type="date"
-              name="taken_at"
-              className="rounded border border-gray-300 px-2 py-1 text-sm"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-xs">
-            Notes
-            <input
-              type="text"
-              name="notes"
-              className="rounded border border-gray-300 px-2 py-1 text-sm"
-            />
-          </label>
-          <button
-            type="submit"
-            className="rounded bg-black px-3 py-1.5 text-sm text-white"
-          >
-            Upload
-          </button>
-        </form>
+        <UploadForm petId={petId} householdId={householdId} />
         <p className="mt-2 text-xs text-gray-500">
           Uploads are automatically scanned for lab values — this can take a few seconds.
         </p>

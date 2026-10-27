@@ -1,6 +1,5 @@
 "use server";
 
-import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { logChangeEvent } from "@/lib/change-log";
@@ -100,66 +99,72 @@ async function runBloodworkParse(
     .eq("id", fileId);
 }
 
-export async function uploadBloodwork(petId: string, formData: FormData) {
-  const file = formData.get("file");
-  const takenAt = String(formData.get("taken_at") ?? "") || null;
-  const notes = String(formData.get("notes") ?? "").trim() || null;
-
-  if (!(file instanceof File) || file.size === 0) return;
-
-  const isPdf = file.type === "application/pdf";
-  const isImage = file.type.startsWith("image/");
-  if (!isPdf && !isImage) return;
+// The file itself is uploaded straight from the browser to Supabase Storage
+// (server actions cap request bodies at 1 MB, and Vercel at 4.5 MB, which
+// real lab PDFs can exceed). This records the already-uploaded file and
+// kicks off the parse.
+export async function registerBloodwork(
+  petId: string,
+  input: {
+    storagePath: string;
+    fileName: string;
+    mimeType: string;
+    takenAt: string | null;
+    notes: string | null;
+  }
+): Promise<{ ok: boolean; error?: string }> {
+  const isPdf = input.mimeType === "application/pdf";
+  const isImage = input.mimeType.startsWith("image/");
+  if (!isPdf && !isImage) return { ok: false, error: "Upload an image or PDF" };
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return;
+  if (!user) return { ok: false, error: "Not signed in" };
 
   const { data: pet } = await supabase
     .from("pets")
     .select("household_id")
     .eq("id", petId)
     .maybeSingle();
-  if (!pet) return;
+  if (!pet) return { ok: false, error: "Pet not found" };
 
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-  const storagePath = `${pet.household_id}/${petId}/${randomUUID()}-${safeName}`;
+  if (!input.storagePath.startsWith(`${pet.household_id}/${petId}/`)) {
+    return { ok: false, error: "Invalid file path" };
+  }
 
-  const { error: uploadError } = await supabase.storage
-    .from("bloodwork")
-    .upload(storagePath, file, { contentType: file.type });
-  if (uploadError) return;
-
-  const { data: inserted } = await supabase
+  const { data: inserted, error: insertError } = await supabase
     .from("bloodwork_files")
     .insert({
       pet_id: petId,
       uploaded_by: user.id,
-      storage_path: storagePath,
-      file_name: file.name,
+      storage_path: input.storagePath,
+      file_name: input.fileName,
       file_type: isPdf ? "pdf" : "image",
-      taken_at: takenAt,
-      notes,
-      mime_type: file.type,
+      taken_at: input.takenAt,
+      notes: input.notes,
+      mime_type: input.mimeType,
     })
     .select("id")
     .single();
+  if (insertError || !inserted) {
+    console.error("registerBloodwork: insert failed", insertError);
+    return { ok: false, error: "Could not save the file record" };
+  }
 
   await logChangeEvent(
     supabase,
     petId,
     "bloodwork",
-    `Vet visit / bloodwork: ${file.name}`,
-    takenAt ?? undefined
+    `Vet visit / bloodwork: ${input.fileName}`,
+    input.takenAt ?? undefined
   );
 
-  if (inserted) {
-    await runBloodworkParse(supabase, inserted.id, storagePath, file.type);
-  }
+  await runBloodworkParse(supabase, inserted.id, input.storagePath, input.mimeType);
 
   revalidatePath(`/pets/${petId}/medical`);
+  return { ok: true };
 }
 
 export async function retryParseBloodwork(petId: string, fileId: string) {

@@ -16,7 +16,7 @@ export default async function BloodworkPage({
   const supabase = await createClient();
 
   const [{ data: pet }, { data: diagnoses }] = await Promise.all([
-    supabase.from("pets").select("species, medical_notes").eq("id", petId).maybeSingle(),
+    supabase.from("pets").select("species, medical_notes, household_id").eq("id", petId).maybeSingle(),
     supabase
       .from("pet_diagnoses")
       .select("id, diagnosis")
@@ -71,7 +71,7 @@ export default async function BloodworkPage({
         diagnoses={diagnoses ?? []}
         medicalNotes={pet?.medical_notes ?? null}
       />
-      <BloodworkSection petId={petId} files={files} />
+      <BloodworkSection petId={petId} householdId={pet?.household_id ?? ""} files={files} />
     </div>
   );
 }
