@@ -116,6 +116,29 @@ function BloodworkResults({ file, petId }: { file: FileEntry; petId: string }) {
   return null;
 }
 
+// Browsers (especially mobile file pickers) sometimes report an empty or
+// generic type for PDFs/images, so fall back to the file extension.
+function inferMimeType(file: File): string {
+  if (file.type && file.type !== "application/octet-stream") return file.type;
+  switch (file.name.toLowerCase().split(".").pop()) {
+    case "pdf":
+      return "application/pdf";
+    case "png":
+      return "image/png";
+    case "gif":
+      return "image/gif";
+    case "webp":
+      return "image/webp";
+    case "heic":
+      return "image/heic";
+    case "jpg":
+    case "jpeg":
+      return "image/jpeg";
+    default:
+      return file.type;
+  }
+}
+
 function UploadForm({ petId, householdId }: { petId: string; householdId: string }) {
   const [status, setStatus] = useState<"idle" | "uploading" | "scanning">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -128,13 +151,18 @@ function UploadForm({ petId, householdId }: { petId: string; householdId: string
     if (!(file instanceof File) || file.size === 0) return;
 
     setError(null);
+    const mimeType = inferMimeType(file);
+    if (mimeType !== "application/pdf" && !mimeType.startsWith("image/")) {
+      setError("That file type isn't supported — upload a PDF or an image.");
+      return;
+    }
     setStatus("uploading");
 
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const storagePath = `${householdId}/${petId}/${crypto.randomUUID()}-${safeName}`;
     const { error: uploadError } = await createClient()
       .storage.from("bloodwork")
-      .upload(storagePath, file, { contentType: file.type });
+      .upload(storagePath, file, { contentType: mimeType });
     if (uploadError) {
       setError(`Upload failed: ${uploadError.message}`);
       setStatus("idle");
@@ -145,7 +173,7 @@ function UploadForm({ petId, householdId }: { petId: string; householdId: string
     const result = await registerBloodwork(petId, {
       storagePath,
       fileName: file.name,
-      mimeType: file.type,
+      mimeType,
       takenAt: String(formData.get("taken_at") ?? "") || null,
       notes: String(formData.get("notes") ?? "").trim() || null,
     });
