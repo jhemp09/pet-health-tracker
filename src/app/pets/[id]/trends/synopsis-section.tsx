@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { generateSynopsis } from "./actions";
 
 export type Synopsis = {
@@ -20,6 +20,19 @@ export function SynopsisSection({
   synopsis: Synopsis | null;
 }) {
   const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  function handleGenerate() {
+    setError(null);
+    startTransition(async () => {
+      try {
+        const result = await generateSynopsis(petId);
+        if (!result.ok) setError(result.error ?? "Couldn't generate a synopsis.");
+      } catch {
+        setError("The request timed out or failed. Please try again.");
+      }
+    });
+  }
 
   return (
     <section className="flex flex-col gap-4">
@@ -28,10 +41,18 @@ export function SynopsisSection({
         <button
           type="button"
           disabled={isPending}
-          onClick={() => startTransition(() => generateSynopsis(petId))}
+          onClick={handleGenerate}
           className="shrink-0 rounded bg-black px-3 py-1.5 text-sm text-white disabled:opacity-50"
         >
-          {isPending ? "Generating…" : synopsis ? "Regenerate" : "Generate synopsis"}
+          <span className="flex items-center gap-2">
+            {isPending && (
+              <span
+                aria-hidden
+                className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent"
+              />
+            )}
+            {isPending ? "Generating…" : synopsis ? "Regenerate" : "Generate synopsis"}
+          </span>
         </button>
       </div>
 
@@ -39,6 +60,13 @@ export function SynopsisSection({
         AI-generated from their tracked data. Not a substitute for veterinary advice — always
         follow up with your vet on anything concerning.
       </p>
+
+      {isPending && (
+        <p role="status" className="text-xs text-gray-600">
+          Reviewing all tracked data — this can take up to a minute.
+        </p>
+      )}
+      {error && <p className="text-sm text-red-700">{error}</p>}
 
       {!synopsis ? (
         <p className="text-sm text-gray-500">

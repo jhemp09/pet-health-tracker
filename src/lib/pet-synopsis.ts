@@ -47,15 +47,19 @@ const SYNOPSIS_TOOL = {
 
 // Best-effort: returns null if there's no API key configured or the model
 // call/parse fails for any reason, same convention as the bloodwork parser.
-export async function generatePetSynopsis(dataSummary: string): Promise<PetSynopsis | null> {
+export type SynopsisResult =
+  | { ok: true; synopsis: PetSynopsis }
+  | { ok: false; error: string };
+
+export async function generatePetSynopsis(dataSummary: string): Promise<SynopsisResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return null;
+  if (!apiKey) return { ok: false, error: "AI is not configured (missing API key)." };
 
   try {
     const client = new Anthropic({ apiKey });
     const message = await client.messages.create({
       model: "claude-sonnet-5",
-      max_tokens: 2048,
+      max_tokens: 8192,
       messages: [
         {
           role: "user",
@@ -84,8 +88,11 @@ export async function generatePetSynopsis(dataSummary: string): Promise<PetSynop
       (block): block is Anthropic.ToolUseBlock => block.type === "tool_use"
     );
     if (!toolUse) {
-      console.error("generatePetSynopsis: no tool_use block in response", message.content);
-      return null;
+      console.error("generatePetSynopsis: no tool_use block in response", {
+        stopReason: message.stop_reason,
+        content: message.content,
+      });
+      return { ok: false, error: "The AI didn't return a synopsis. Please try again." };
     }
 
     const input = toolUse.input as {
@@ -112,19 +119,34 @@ export async function generatePetSynopsis(dataSummary: string): Promise<PetSynop
       typeof input.prognosis !== "string" ||
       suggestions === null
     ) {
-      console.error("generatePetSynopsis: malformed tool input", input);
-      return null;
+      console.error("generatePetSynopsis: malformed tool input", {
+        stopReason: message.stop_reason,
+        input,
+      });
+      return {
+        ok: false,
+        error:
+          message.stop_reason === "max_tokens"
+            ? "The synopsis was too long and got cut off. Please try again."
+            : "The AI returned an incomplete synopsis. Please try again.",
+      };
     }
 
     return {
-      currentState: input.current_state,
-      recentChanges: input.recent_changes,
-      trend: input.trend,
-      prognosis: input.prognosis,
-      suggestions,
+      ok: true,
+      synopsis: {
+        currentState: input.current_state,
+        recentChanges: input.recent_changes,
+        trend: input.trend,
+        prognosis: input.prognosis,
+        suggestions,
+      },
     };
   } catch (err) {
     console.error("generatePetSynopsis failed:", err);
-    return null;
+    return {
+      ok: false,
+      error: `The AI request failed: ${err instanceof Error ? err.message : "unknown error"}`,
+    };
   }
 }

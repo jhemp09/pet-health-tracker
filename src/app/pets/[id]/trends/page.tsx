@@ -14,7 +14,7 @@ import { SynopsisSection } from "./synopsis-section";
 // The synopsis generation calls out to Claude with a fair amount of
 // gathered data, which can take longer than the platform's default
 // serverless timeout.
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 // Different bloodwork reports format the same test name inconsistently
 // ("BUN:Creatinine Ratio" vs "BUN: Creatinine Ratio", "Bilirubin (Urine)" vs

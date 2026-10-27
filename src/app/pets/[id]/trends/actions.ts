@@ -295,7 +295,9 @@ function buildDataSummary(data: {
   return lines.join("\n");
 }
 
-export async function generateSynopsis(petId: string) {
+export async function generateSynopsis(
+  petId: string
+): Promise<{ ok: boolean; error?: string }> {
   const supabase = await createClient();
 
   const { data: pet } = await supabase
@@ -303,7 +305,7 @@ export async function generateSynopsis(petId: string) {
     .select("name, species, breed, birth_date, medical_notes")
     .eq("id", petId)
     .maybeSingle();
-  if (!pet) return;
+  if (!pet) return { ok: false, error: "Pet not found." };
 
   const { data: diagnosisRows } = await supabase
     .from("pet_diagnoses")
@@ -445,26 +447,29 @@ export async function generateSynopsis(petId: string) {
   });
 
   const result = await generatePetSynopsis(summary);
-  if (!result) {
-    console.error("generateSynopsis: generatePetSynopsis returned null for pet", petId);
-    return;
+  if (!result.ok) {
+    console.error("generateSynopsis: generation failed for pet", petId, result.error);
+    return { ok: false, error: result.error };
   }
+  const synopsis = result.synopsis;
 
   const { error: upsertError } = await supabase.from("pet_synopses").upsert(
     {
       pet_id: petId,
-      current_state: result.currentState,
-      recent_changes: result.recentChanges,
-      trend: result.trend,
-      prognosis: result.prognosis,
-      suggestions: result.suggestions,
+      current_state: synopsis.currentState,
+      recent_changes: synopsis.recentChanges,
+      trend: synopsis.trend,
+      prognosis: synopsis.prognosis,
+      suggestions: synopsis.suggestions,
       generated_at: new Date().toISOString(),
     },
     { onConflict: "pet_id" }
   );
   if (upsertError) {
     console.error("generateSynopsis: pet_synopses upsert failed:", upsertError);
+    return { ok: false, error: `Couldn't save the synopsis: ${upsertError.message}` };
   }
 
   revalidatePath(`/pets/${petId}/trends`);
+  return { ok: true };
 }
