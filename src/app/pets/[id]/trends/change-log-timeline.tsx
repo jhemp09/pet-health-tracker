@@ -47,7 +47,7 @@ export function ChangeLogTimeline({
   }
 
   return (
-    <section className="card p-4">
+    <section className="card min-w-0 p-4">
       <div className="flex items-center justify-between">
         <h2 className="font-heading text-lg font-semibold">Change log</h2>
         <button
@@ -105,26 +105,27 @@ export function ChangeLogTimeline({
           style={{ borderColor: "var(--color-border)" }}
         >
           {entries.map((entry) => (
-            <li key={entry.id} className="relative">
+            <li key={entry.id} className="relative min-w-0">
               <span
                 className="absolute -left-[1.4rem] top-1 h-3 w-3 rounded-full"
                 style={{ background: CATEGORY_COLOR[entry.category] }}
               />
               <div className="flex items-start justify-between gap-2">
-                <div>
+                <div className="min-w-0 flex-1">
                   <p
                     className="text-xs font-medium"
                     style={{ color: CATEGORY_COLOR[entry.category] }}
                   >
                     {CATEGORY_LABEL[entry.category]} · {entry.event_date}
                   </p>
-                  <p className="text-sm">{entry.description}</p>
+                  <p className="break-words text-sm">{entry.description}</p>
                 </div>
                 <button
                   type="button"
                   disabled={isPending}
                   onClick={() => handleDelete(entry.id)}
-                  className="text-xs text-gray-400 hover:text-red-600"
+                  aria-label="Delete event"
+                  className="shrink-0 px-1 text-sm text-gray-400 hover:text-red-600"
                 >
                   ×
                 </button>
