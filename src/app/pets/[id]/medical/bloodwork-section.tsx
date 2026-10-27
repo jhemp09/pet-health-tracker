@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   deleteBloodworkFile,
@@ -61,7 +61,13 @@ function BloodworkResults({ file, petId }: { file: FileEntry; petId: string }) {
             onClick={() => startTransition(() => retryParseBloodwork(petId, file.id))}
             className="shrink-0 text-blue-600 underline disabled:opacity-50"
           >
-            {isPending ? "Scanning…" : "Re-scan"}
+            {isPending ? (
+              <span className="flex items-center gap-1.5">
+                <Spinner /> Scanning…
+              </span>
+            ) : (
+              "Re-scan"
+            )}
           </button>
         </div>
         {expanded && (
@@ -103,9 +109,11 @@ function BloodworkResults({ file, petId }: { file: FileEntry; petId: string }) {
           onClick={() => startTransition(() => retryParseBloodwork(petId, file.id))}
           className="shrink-0 text-blue-600 underline disabled:opacity-50"
         >
-          {isPending
-            ? "Scanning…"
-            : file.parse_status === "failed"
+          {isPending ? (
+            <span className="flex items-center gap-1.5">
+              <Spinner /> Scanning…
+            </span>
+          ) : file.parse_status === "failed"
               ? "Retry"
               : "Scan for lab values"}
         </button>
@@ -114,6 +122,15 @@ function BloodworkResults({ file, petId }: { file: FileEntry; petId: string }) {
   }
 
   return null;
+}
+
+function Spinner() {
+  return (
+    <span
+      aria-hidden
+      className="inline-block h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent"
+    />
+  );
 }
 
 // Browsers (especially mobile file pickers) sometimes report an empty or
@@ -139,25 +156,42 @@ function inferMimeType(file: File): string {
   }
 }
 
+function isSupported(mimeType: string) {
+  return mimeType === "application/pdf" || mimeType.startsWith("image/");
+}
+
 function UploadForm({ petId, householdId }: { petId: string; householdId: string }) {
   const [status, setStatus] = useState<"idle" | "uploading" | "scanning">("idle");
   const [error, setError] = useState<string | null>(null);
+  // State updates are async, so a quick second tap could slip through before
+  // the button re-renders as disabled; a ref blocks it immediately.
+  const inFlight = useRef(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (inFlight.current) return;
     const form = e.currentTarget;
     const formData = new FormData(form);
     const file = formData.get("file");
     if (!(file instanceof File) || file.size === 0) return;
 
     setError(null);
-    const mimeType = inferMimeType(file);
-    if (mimeType !== "application/pdf" && !mimeType.startsWith("image/")) {
+    if (!isSupported(inferMimeType(file))) {
       setError("That file type isn't supported — upload a PDF or an image.");
       return;
     }
+    inFlight.current = true;
     setStatus("uploading");
+    try {
+      await upload(file, formData, form);
+    } finally {
+      inFlight.current = false;
+      setStatus("idle");
+    }
+  }
 
+  async function upload(file: File, formData: FormData, form: HTMLFormElement) {
+    const mimeType = inferMimeType(file);
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
     const storagePath = `${householdId}/${petId}/${crypto.randomUUID()}-${safeName}`;
     const { error: uploadError } = await createClient()
@@ -165,7 +199,6 @@ function UploadForm({ petId, householdId }: { petId: string; householdId: string
       .upload(storagePath, file, { contentType: mimeType });
     if (uploadError) {
       setError(`Upload failed: ${uploadError.message}`);
-      setStatus("idle");
       return;
     }
 
@@ -177,7 +210,6 @@ function UploadForm({ petId, householdId }: { petId: string; householdId: string
       takenAt: String(formData.get("taken_at") ?? "") || null,
       notes: String(formData.get("notes") ?? "").trim() || null,
     });
-    setStatus("idle");
     if (!result.ok) {
       setError(result.error ?? "Could not save the upload");
       return;
@@ -221,9 +253,20 @@ function UploadForm({ petId, householdId }: { petId: string; householdId: string
           disabled={busy}
           className="rounded bg-black px-3 py-1.5 text-sm text-white disabled:opacity-50"
         >
-          {status === "uploading" ? "Uploading…" : status === "scanning" ? "Scanning…" : "Upload"}
+          <span className="flex items-center gap-2">
+            {busy && <Spinner />}
+            {status === "uploading" ? "Uploading…" : status === "scanning" ? "Scanning…" : "Upload"}
+          </span>
         </button>
       </form>
+      {busy && (
+        <p role="status" className="mt-2 flex items-center gap-2 text-xs text-gray-600">
+          <Spinner />
+          {status === "uploading"
+            ? "Uploading your file…"
+            : "Uploaded! Reading the lab values — this can take up to a minute. Please don't tap Upload again."}
+        </p>
+      )}
       {error && <p className="mt-2 text-xs text-red-700">{error}</p>}
     </>
   );
