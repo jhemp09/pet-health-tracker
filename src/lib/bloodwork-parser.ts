@@ -141,7 +141,12 @@ export async function parseBloodworkFile(
             {
               type: "text",
               text:
-                "Extract every lab test result from this veterinary bloodwork report. The patient's " +
+                "Extract every lab test result from this veterinary bloodwork report. White-cell " +
+                "differentials (Neutrophils, Lymphocytes, Monocytes, Eosinophils, Basophils, and " +
+                "Reticulocytes) are usually reported twice — once as a percentage and once as an " +
+                "absolute count. Return each as its own separate result, never merged: name the " +
+                "percentage one with a leading '% ' (e.g. '% Monocytes', unit '%') and the " +
+                "absolute count with no prefix (e.g. 'Monocytes', unit 'K/µL'). The patient's " +
                 "body weight, when present, usually appears in the patient info/header area near the " +
                 "top of the report rather than as one of the lab test results, so check there " +
                 "specifically and include it in the weight field if found. Then call " +

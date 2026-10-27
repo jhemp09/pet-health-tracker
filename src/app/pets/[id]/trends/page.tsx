@@ -22,8 +22,11 @@ export const maxDuration = 60;
 // separate rows. Stripping punctuation and sorting words makes the grouping
 // key insensitive to spacing and word order.
 function labTestKey(name: string) {
+  // "%" is meaningful: "% Monocytes" (share of white cells) and "Monocytes"
+  // (absolute count) are different tests and must not merge.
   const key = name
     .toLowerCase()
+    .replace(/%/g, " percent ")
     .replace(/[^a-z0-9]+/g, " ")
     .trim()
     .split(" ")
